@@ -149,11 +149,30 @@ source_seeds.each_with_index do |seed, game_index|
       unit = units[index]
       min_x = unit['members'].min{|m|m['x']}['x']
       max_x = unit['members'].max{|m|m['x']}['x']
-      size_x = max_x - min_x
+      size_x = max_x - min_x + 1
       base_x = (width - size_x) / 2
       cur_unit = Unit.new(unit, base_x)
 
       # TODO: Check if it can appear.
+    end
+
+    puts "game ##{game_index} turn #{turn} @#{frame}"
+    board.each_with_index do |row, y|
+      if y % 2 != 0
+        print ' '
+      end
+      print '|'
+      row.each_with_index do |col, x|
+        if cur_unit && cur_unit.in?(x, y)
+          print 'x'
+        elsif col
+          print 'X'
+        else
+          print ' '
+        end
+        print '|'
+      end
+      puts ""
     end
 
     # TODO: Get them from stdin or somewhere.
@@ -170,24 +189,6 @@ source_seeds.each_with_index do |seed, game_index|
       raise "TODO"
     else
       raise "#{cmd}"
-    end
-
-    puts "game ##{game_index} turn #{turn} @#{frame}"
-    board.each_with_index do |row, y|
-      if y % 2 != 0
-        print ' '
-      end
-      row.each_with_index do |col, x|
-        if cur_unit && cur_unit.in?(x, y)
-          print 'x'
-        elsif col
-          print 'X'
-        else
-          print ' '
-        end
-        print ' '
-      end
-      puts
     end
 
   end
