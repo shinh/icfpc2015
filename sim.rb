@@ -131,7 +131,7 @@ source_seeds.each_with_index do |seed, game_index|
   cur_unit = nil
   spawned_cnt = 0
   frame = -1
-  turn = -1
+  turn = 0
 
   # game loop
   while true
