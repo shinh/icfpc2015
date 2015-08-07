@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include <algorithm>
+#include <map>
 #include <memory>
 #include <vector>
 #include <unordered_map>
@@ -11,6 +12,19 @@
 #include <utility>
 
 #include "problem.h"
+
+typedef unordered_set<int> IntSet;
+namespace std {
+template <> struct hash<IntSet> {
+  size_t operator()(const IntSet& s) const {
+    size_t r = 0;
+    for (int v : s) {
+      r = (r * 131) + v;
+    }
+    return r;
+  }
+};
+}
 
 class Lcg {
  public:
@@ -201,6 +215,18 @@ struct Decision {
     return !operator==(d);
   }
 
+  bool operator<(Decision d) const {
+    if (x < d.x)
+      return true;
+    if (x > d.x)
+      return false;
+    if (y < d.y)
+      return true;
+    if (y > d.y)
+      return false;
+    return r < d.r;
+  }
+
   int x, y, r;
 };
 
@@ -234,6 +260,9 @@ class Unit {
   Pos pivot_;
   int base_x_;
 };
+
+//typedef unordered_map<Decision, vector<Command>> DecisionMap;
+typedef map<Decision, vector<Command>> DecisionMap;
 
 class Board {
  public:
@@ -273,14 +302,14 @@ class Board {
   }
 
   bool At(Pos p) const {
-    if (p.x < 0 || p.x >= W || p.y < 0 || p.y >= H)
-      return true;
     size_t i = p.y * W + p.x;
     assert(i < b_.size());
     return b_[i];
   }
 
   bool CanFill(Pos p) const {
+    if (p.x < 0 || p.x >= W || p.y < 0 || p.y >= H)
+      return false;
     return !At(p);
   }
 
@@ -302,22 +331,37 @@ class Board {
     }
   }
 
-  void GetPossibleDecisionsWithComandsImpl(
-      const Unit& u,
-      Decision d,
-      Decision pd,
-      vector<Command>* commands,
-      unordered_set<Decision>* seen,
-      unordered_map<Decision, vector<Command>>* out) {
-    //fprintf(stderr, "%d %d %d %zu\n", d.x, d.y, d.r, seen->size());
-    if (!seen->insert(d).second)
-      return;
+  int GetPosId(Pos p) {
+    // +2 for boundaries.
+    return p.y * (W + 2) + p.x;
+  }
 
+  void GetDecisionId(const Unit& u, Decision d, IntSet* id) {
+    id->insert(GetPosId(u.pivot()));
+    for (Pos p : u.members()) {
+      Pos np = p.Rotate(d.y, d.r, u.pivot());
+      np += Pos(d.x, d.y);
+      id->insert(GetPosId(np));
+    }
+  }
+
+  void GetPossibleDecisionsWithComandsImpl(const Unit& u,
+                                           Decision d,
+                                           Decision pd,
+                                           vector<Command>* commands,
+                                           unordered_set<IntSet>* seen,
+                                           DecisionMap* out) {
+    //fprintf(stderr, "%d %d %d %zu\n", d.x, d.y, d.r, seen->size());
     if (!CanPut(u, d)) {
       assert(d != pd);
       out->emplace(pd, *commands);
       return;
     }
+
+    IntSet decision_id;
+    GetDecisionId(u, d, &decision_id);
+    if (!seen->insert(decision_id).second)
+      return;
 
 #define NEXT(nd, cmd) do {                                              \
       commands->push_back(cmd);                                         \
@@ -333,12 +377,10 @@ class Board {
 #undef NEXT
   }
 
-  void GetPossibleDecisionsWithComands(
-      const Unit& u,
-      unordered_map<Decision, vector<Command>>* out) {
+  void GetPossibleDecisionsWithComands(const Unit& u, DecisionMap* out) {
      Decision d = u.origin();
      vector<Command> commands;
-     unordered_set<Decision> seen;
+     unordered_set<IntSet> seen;
      GetPossibleDecisionsWithComandsImpl(u, d, d, &commands, &seen, out);
   }
 
@@ -380,9 +422,21 @@ class Game {
         break;
       }
 
-      unordered_map<Decision, vector<Command>> decisions;
+      DecisionMap decisions;
       board_->GetPossibleDecisionsWithComands(u, &decisions);
       assert(!decisions.empty());
+
+#if 0
+      for (const auto& p : decisions) {
+        Board nb = *board_;
+        Decision d = p.first;
+        nb.Put(u, d);
+        fprintf(stderr, "decision %d,%d,%d %s\n",
+                d.x, d.y, d.r,
+                MakeCommandStr(p.second).c_str());
+        nb.Show();
+      }
+#endif
 
       // TODO: Eval
       Decision decision = decisions.begin()->first;
@@ -392,9 +446,10 @@ class Game {
       score_ += u.members().size();
       // TODO: Line removal.
 
-      fprintf(stderr, "Turn %d s=%d d=%d,%d,%d c=%s\n",
+      fprintf(stderr, "Turn %d s=%d d=%d,%d,%d c=%s n=%zu\n",
               turn_, score_, decision.x, decision.y, decision.r,
-              MakeCommandStr(cmds).c_str());
+              MakeCommandStr(cmds).c_str(),
+              decisions.size());
       board_->Show();
     }
   }
