@@ -15,7 +15,7 @@ static Pos GetPos(picojson::value v) {
   return Pos(GetDouble(v.get("x")), GetDouble(v.get("y")));
 }
 
-void Problem::Load(const char* filename) {
+Problem::Problem(const char* filename) {
   picojson::value root;
   fstream ifs(filename);
   ifs >> root;

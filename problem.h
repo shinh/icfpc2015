@@ -19,7 +19,7 @@ struct Problem {
   typedef pair<vector<Pos>, Pos> Unit;
   vector<Unit> units;
 
-  void Load(const char* filename);
+  explicit Problem(const char* filename);
 };
 
 #endif

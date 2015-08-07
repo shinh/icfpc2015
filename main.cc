@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "problem.h"
 
@@ -34,9 +35,78 @@ class Lcg {
   uint32_t v_;
 };
 
-int main() {
+class Unit {
+ public:
+  Unit(const vector<Pos>& members, Pos pivot)
+      : members_(members), pivot_(pivot) {
+  }
+
+ private:
+  vector<Pos> members_;
+  Pos pivot_;
+};
+
+class Board {
+ public:
+  explicit Board(int width, int height, const vector<Pos>& filled) {
+    W = width;
+    H = height;
+    b_.resize(W * H);
+    for (Pos p : filled) {
+      Fill(p);
+    }
+  }
+
+  void Fill(Pos p) {
+    assert(p.x >= 0);
+    assert(p.x < W);
+    assert(p.y >= 0);
+    assert(p.y < H);
+    size_t i = p.y * W + p.x;
+    assert(i < b_.size());
+    b_[i] = true;
+  }
+
+ private:
+  int W, H;
+  vector<int> b_;
+};
+
+class Game {
+ public:
+  Game(const Problem& problem, int seed)
+      : lcg_(seed) {
+    H = problem.height;
+    W = problem.width;
+    id_ = problem.id;
+    source_length_ = problem.source_length;
+    for (const auto& u : problem.units) {
+      units_.push_back(Unit(u.first, u.second));
+    }
+  }
+
+ private:
+  int H, W;
+  int id_;
+  int source_length_;
+  Lcg lcg_;
+  vector<Unit> units_;
+};
+
+int main(int argc, char* argv[]) {
   Lcg::Test();
 
-  Problem prob;
-  prob.Load("problem_0.json");
+  const char* filename = "problem_0.json";
+  for (int i = 1; i < argc; i++) {
+    const char* arg = argv[i];
+    if (!strcmp(arg, "-f")) {
+      filename = argv[++i];
+    }
+    // TODO: Implement the rest.
+  }
+
+  Problem problem(filename);
+  for (int seed : problem.source_seeds) {
+    Game game(problem, seed);
+  }
 }
