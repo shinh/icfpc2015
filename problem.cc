@@ -11,8 +11,8 @@ static double GetDouble(picojson::value v) {
   return v.get<double>();
 }
 
-static Pos GetPos(picojson::value v) {
-  return Pos(GetDouble(v.get("x")), GetDouble(v.get("y")));
+static Problem::Pos GetPos(picojson::value v) {
+  return Problem::Pos(GetDouble(v.get("x")), GetDouble(v.get("y")));
 }
 
 Problem::Problem(const char* filename) {

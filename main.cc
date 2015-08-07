@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <unordered_set>
+
 #include "problem.h"
 
 class Lcg {
@@ -35,15 +37,138 @@ class Lcg {
   uint32_t v_;
 };
 
+enum Command {
+  MOVE_W,
+  MOVE_E,
+  MOVE_SW,
+  MOVE_SE,
+  ROT_C,
+  ROT_CC,
+};
+
+struct Pos {
+  int x, y;
+  Pos() : x(-1), y(-1) {}
+  Pos(int x0, int y0) : x(x0), y(y0) {}
+  explicit Pos(pair<int, int> p) : x(p.first), y(p.second) {}
+
+  static void CheckEq(Pos a, Pos b, const char* f, int l) {
+    if (a != b) {
+      fprintf(stderr, "%s:%d: (%d,%d) vs (%d,%d)\n",
+              f, l, a.x, a.y, b.x, b.y);
+    }
+  }
+
+  static void Test() {
+#define CHECK_EQ(a, b) CheckEq(a, b, __FILE__, __LINE__)
+    CHECK_EQ(Pos(0, 0).Rotate(0, 0, Pos(0, 0)), Pos(0, 0));
+
+    CHECK_EQ(Pos(1, 0).Rotate(0, 0, Pos(0, 0)), Pos(1, 0));
+    CHECK_EQ(Pos(1, 0).Rotate(0, 1, Pos(0, 0)), Pos(0, 1));
+    CHECK_EQ(Pos(1, 0).Rotate(0, 2, Pos(0, 0)), Pos(-1, 1));
+    CHECK_EQ(Pos(1, 0).Rotate(0, 3, Pos(0, 0)), Pos(-1, 0));
+    CHECK_EQ(Pos(1, 0).Rotate(0, 4, Pos(0, 0)), Pos(-1, -1));
+    CHECK_EQ(Pos(1, 0).Rotate(0, 5, Pos(0, 0)), Pos(0, -1));
+
+    CHECK_EQ(Pos(1, 0).Rotate(1, 0, Pos(0, 0)), Pos(1, 0));
+    CHECK_EQ(Pos(1, 0).Rotate(1, 1, Pos(0, 0)), Pos(1, 1));
+    CHECK_EQ(Pos(1, 0).Rotate(1, 2, Pos(0, 0)), Pos(0, 1));
+    CHECK_EQ(Pos(1, 0).Rotate(1, 3, Pos(0, 0)), Pos(-1, 0));
+    CHECK_EQ(Pos(1, 0).Rotate(1, 4, Pos(0, 0)), Pos(0, -1));
+    CHECK_EQ(Pos(1, 0).Rotate(1, 5, Pos(0, 0)), Pos(1, -1));
+
+    CHECK_EQ(Pos(2, 0).Rotate(0, 0, Pos(1, 1)), Pos(2, 0));
+    CHECK_EQ(Pos(2, 0).Rotate(0, 1, Pos(1, 1)), Pos(2, 1));
+    CHECK_EQ(Pos(2, 0).Rotate(0, 2, Pos(1, 1)), Pos(2, 2));
+    CHECK_EQ(Pos(2, 0).Rotate(0, 3, Pos(1, 1)), Pos(1, 2));
+    CHECK_EQ(Pos(2, 0).Rotate(0, 4, Pos(1, 1)), Pos(0, 1));
+    CHECK_EQ(Pos(2, 0).Rotate(0, 5, Pos(1, 1)), Pos(1, 0));
+#undef CHECK_EQ
+  }
+
+  bool operator==(Pos p) const {
+    return x == p.x && y == p.y;
+  }
+  bool operator!=(Pos p) const {
+    return !operator==(p);
+  }
+
+  double GetGeomX(int cy) const {
+    return x + ((y + cy) & 1) * 0.5;
+  }
+
+  Pos Rotate(int cy, int r, Pos p) {
+    int odd = (y + cy) & 1;
+    double dy = sqrt(1-0.5*0.5);
+    double pgx = p.GetGeomX(cy);
+    double gx = GetGeomX(cy) - pgx;
+    double gy = (y - p.y) * dy;
+    double gr = M_PI * 2 * r / 6;
+    double nx = gx * cos(gr) - gy * sin(gr);
+    double ny = gx * sin(gr) + gy * cos(gr);
+    int iy = round(ny / dy) + p.y;
+    int ix = round(nx + pgx - (iy - y + cy & 1) * 0.5);
+    //fprintf(stderr, "(%f,%f) => (%f,%f) %d,%d\n", gx, gy, nx, ny, ix, iy);
+    return Pos(ix, iy);
+
+#if 0
+    int dx = x - p.x;
+    int dy = y - p.y;
+    int nx = 0;
+    int ny = 0;
+    int odd = (y + cy) & 1;
+    switch (r) {
+      case 0:
+        return *this;
+
+      case 1: {
+        
+      }
+
+      case 2:
+      case 3:
+      case 4:
+      case 5:
+
+      default:
+        assert(false);
+    }
+#endif
+  }
+};
+
+struct Decision {
+  int x, y, r;
+};
+
+namespace std {
+template <> struct hash<Decision> {
+  size_t operator()(const Decision& d) const {
+    return d.r * 17161 + d.y * 131 + d.x;
+  }
+};
+}
+
 class Unit {
  public:
-  Unit(const vector<Pos>& members, Pos pivot)
+  Unit(const vector<Pos>& members, Pos pivot, int width)
       : members_(members), pivot_(pivot) {
+    int min_x = width;
+    int max_x = 0;
+    for (const Pos& p : members) {
+      min_x = min(min_x, p.x);
+      max_x = max(max_x, p.x);
+    }
+    base_x_ = (width - (max_x - min_x)) / 2;
   }
+
+  const vector<Pos>& members() const { return members_; }
+  Pos pivot() const { return pivot_; }
 
  private:
   vector<Pos> members_;
   Pos pivot_;
+  int base_x_;
 };
 
 class Board {
@@ -67,6 +192,25 @@ class Board {
     b_[i] = true;
   }
 
+  bool CanFill(Pos p) {
+    if (p.x < 0 || p.x >= W || p.y < 0 || p.y >= H)
+      return false;
+    size_t i = p.y * W + p.x;
+    assert(i < b_.size());
+    return b_[i];
+  }
+
+  bool CanPut(const Unit& u, const Decision& d) {
+    for (Pos p : u.members()) {
+      
+    }
+    return false;
+  }
+
+  void GetPossibleDecisions(vector<Decision>* out) {
+    //unordered_set
+  }
+
  private:
   int W, H;
   vector<int> b_;
@@ -81,7 +225,11 @@ class Game {
     id_ = problem.id;
     source_length_ = problem.source_length;
     for (const auto& u : problem.units) {
-      units_.push_back(Unit(u.first, u.second));
+      vector<Pos> members;
+      for (const auto& m : u.first) {
+        members.push_back(Pos(m));
+      }
+      units_.push_back(Unit(members, Pos(u.second), W));
     }
   }
 
@@ -94,6 +242,7 @@ class Game {
 };
 
 int main(int argc, char* argv[]) {
+  Pos::Test();
   Lcg::Test();
 
   const char* filename = "problem_0.json";
