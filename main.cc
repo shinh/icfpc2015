@@ -419,7 +419,7 @@ int main(int argc, char* argv[]) {
   Pos::Test();
   Lcg::Test();
 
-  const char* filename = "problem_0.json";
+  const char* filename = "problems/problem_0.json";
   for (int i = 1; i < argc; i++) {
     const char* arg = argv[i];
     if (!strcmp(arg, "-f")) {
