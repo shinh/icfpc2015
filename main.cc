@@ -452,6 +452,8 @@ class Game {
               decisions.size());
       board_->Show();
     }
+
+    fprintf(stderr, "turn=%d/%d score=%d\n", turn_, source_length_, score_);
   }
 
   const vector<Command>& commands() const { return commands_; }
