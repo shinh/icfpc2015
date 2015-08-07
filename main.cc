@@ -484,12 +484,14 @@ int main(int argc, char* argv[]) {
   }
 
   Problem problem(filename);
-  unordered_map<int, string> solutions;
+  //unordered_map<int, string> solutions;
+  vector<pair<int, string>> solutions;
   for (int seed : problem.source_seeds) {
     Game game(problem, seed);
     game.Play();
-    bool ok = solutions.emplace(seed, MakeCommandStr(game.commands())).second;
-    assert(ok);
+    //bool ok = solutions.emplace(seed, MakeCommandStr(game.commands())).second;
+    //assert(ok);
+    solutions.push_back(make_pair(seed, MakeCommandStr(game.commands())));
   }
 
   printf("[");
