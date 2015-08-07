@@ -130,12 +130,14 @@ source_seeds.each_with_index do |seed, game_index|
   lcg = Lcg.new(seed)
   cur_unit = nil
   spawned_cnt = 0
+  frame = -1
   turn = -1
 
   # game loop
   while true
-    turn += 1
+    frame += 1
     if !cur_unit
+      turn += 1
       if spawned_cnt == source_length
         # TODO: What should we do, then?
         puts 'no more puyos'
@@ -170,7 +172,7 @@ source_seeds.each_with_index do |seed, game_index|
       raise "#{cmd}"
     end
 
-    puts "game ##{game_index} turn #{turn}"
+    puts "game ##{game_index} turn #{turn} @#{frame}"
     board.each_with_index do |row, y|
       if y % 2 != 0
         print ' '
