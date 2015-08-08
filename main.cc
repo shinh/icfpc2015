@@ -473,8 +473,17 @@ class Game {
     {
       const Unit& u = units_[3];
       board_->Show(u, u.origin());
+      for (int y = 0; y < H; y++) {
+        for (int x = 0; x < W; x++) {
+          fprintf(stderr, "%d,%d\n", x, y);
+          board_->Show(u, Decision(x, y, 0));
+        }
+      }
+#if 0
+      board_->Show(u, u.origin());
       board_->Show(u, Decision(u.base_x() + 4, 0, 0));
       fprintf(stderr, "%d\n", board_->CanPut(u, Decision(4, 0, 0)));
+#endif
     }
 #endif
 
