@@ -213,6 +213,12 @@ struct Decision {
     return Pos(x, y);
   }
 
+  Pos Apply(Pos p, Pos pivot) const {
+    Pos np = p.Rotate(y, r, pivot);
+    np += Pos(x, y);
+    return np;
+  }
+
   bool operator==(Decision d) const {
     return x == d.x && y == d.y && r == d.r;
   }
@@ -280,13 +286,22 @@ class Board {
     }
   }
 
-  void Show() const {
+  void Show(const Unit& u, Decision d) const {
+    vector<Pos> poses;
+    for (Pos p : u.members()) {
+      Pos np = d.Apply(p, u.pivot());
+      poses.push_back(np);
+    }
+
     for (int y = 0; y < H; y++) {
       if (y % 2)
         fprintf(stderr, " ");
       for (int x = 0; x < W; x++) {
         fprintf(stderr, "|");
-        if (At(Pos(x, y))) {
+        Pos p = Pos(x, y);
+        if (find(poses.begin(), poses.end(), p) != poses.end()) {
+          fprintf(stderr, "o");
+        } else if (At(p)) {
           fprintf(stderr, "X");
         } else {
           fprintf(stderr, " ");
@@ -478,7 +493,7 @@ class Game {
       // TODO: Eval
       Decision decision = d.first;
       board_->Put(u, decision);
-      board_->Show();
+      board_->Show(u, decision);
 
       int ls = board_->Clear();
       // TODO: old_ls
