@@ -717,7 +717,6 @@ class Game {
 
       auto d = ChooseBest(u, decisions);
 
-      // TODO: Eval
       Decision decision = d.first;
       board_->Put(u, decision);
       board_->Show(u, decision);
@@ -726,6 +725,9 @@ class Game {
       // TODO: old_ls
       const vector<Command>& cmds = d.second;
       copy(cmds.begin(), cmds.end(), back_inserter(commands_));
+      if (ls > 0) {
+        fprintf(stderr, "line remove! %d\n", ls);
+      }
       score_ += u.members().size() + 100 * (1 + ls) * ls / 2;
 
       fprintf(stderr, "Turn %d s=%d u=%d d=%d,%d,%d c=%s n=%zu\n",
