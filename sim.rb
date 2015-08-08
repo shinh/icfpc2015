@@ -36,9 +36,9 @@ def decode_cmd(s)
     elsif [?l, ?m, ?n, ?o, ' ', ?5].include?(c)
       r << [:move, :SE]
     elsif [?d, ?q, ?r, ?v, ?z, ?1].include?(c)
-      r << [:rot, :C]
+      r << [:turn, :C]
     elsif [?k, ?s, ?t, ?u, ?w, ?x].include?(c)
-      r << [:rot, :CC]
+      r << [:turn, :CC]
     else
       raise "Unknown: #{c}"
     end
@@ -78,6 +78,36 @@ class Unit
     [x + dx, y + dy]
   end
 
+  def rotated_pos(x, y, dir)
+    puts "rotated_pos (#{x}, #{y}), (#{@pivot[0]}, #{@pivot[1]})"
+    xdist = Math.sqrt(3)/2
+    ydist = 3.0/4.0
+    geox = xdist * x + (1 + (y % 2)) * xdist / 2
+    geoy = 0.5 + ydist * y
+    geopx = xdist * @pivot[0] + (1 + (@pivot[1] % 2)) * xdist / 2
+    geopy = 0.5 + ydist * @pivot[1]
+
+    dx = geox - geopx
+    dy = geoy - geopy
+    case dir
+    when :C
+      theta = - Math::PI / 3
+    when :CC
+      theta = Math::PI / 3
+    else
+      raise "#{arg}"
+    end
+
+    geonx = dx * Math.cos(theta) - dy * Math.sin(theta) + geopx
+    geony = dx * Math.sin(theta) + dy * Math.cos(theta) + geopy
+
+    puts "rotated_pos geo (#{geox}, #{geoy}), (#{geopx}, #{geopy}), (#{geonx}, #{geony})"
+    ny = ((geony - 0.5) / ydist).round
+    nx = ((geonx - (1 + (ny % 2)) * xdist / 2) / xdist).round
+    puts "rotated_pos after (#{nx}, #{ny})"
+    [nx, ny]
+  end
+
   def can_move(dir, board)
     @members.each do |x, y|
       nx, ny = moved_pos(x, y, dir)
@@ -94,6 +124,31 @@ class Unit
       @members.each do |pos|
         x, y = pos
         nx, ny = moved_pos(x, y, dir)
+        pos[0] = nx
+        pos[1] = ny
+      end
+      return true
+    else
+      return false
+    end
+  end
+
+  def can_turn(dir, board)
+    @members.each do |x, y|
+      nx, ny = rotated_pos(x, y, dir)
+      if (nx < 0 || ny < 0 || ny >= board.size || nx >= board[0].size ||
+          board[ny][nx])
+        return false
+      end
+    end
+    return true
+  end
+
+  def turn(dir, board)
+    if can_turn(dir, board)
+      @members.each do |pos|
+        x, y = pos
+        nx, ny = rotated_pos(x, y, dir)
         pos[0] = nx
         pos[1] = ny
       end
@@ -143,6 +198,15 @@ source_length = board_info['sourceLength']
 source_seeds = board_info['sourceSeeds']
 units = board_info['units']
 
+solution_all = JSON.load(File.read(ARGV[1]))
+solution = nil
+solution_all.each{|e|
+  if e['problemId'].to_i == ARGV[2].to_i then
+    solution = e['solution']
+  end
+}
+puts "Given solution is #{solution}"
+
 source_seeds.each_with_index do |seed, game_index|
   board = Array.new(height){[false] * width}
   filled.each do |x, y|
@@ -155,9 +219,7 @@ source_seeds.each_with_index do |seed, game_index|
   frame = -1
   turn = 0
 
-  # TODO: Get them from stdin or somewhere.
-  cmds = decode_cmd('iiiiiiimimiiiiiimmimiiiimimimmimimimimmeemmimimiimmmmimmimiimimimmimmimeeemmmimimmimeeemiimiimimimiiiipimiimimmmmeemimeemimimimmmmemimmimmmiiimmmiiipiimiiippiimmmeemimiipimmimmipppimmimeemeemimiieemimmmm')
-  #cmds = decode_cmd('ppppppppapppplbbbbbbbappppppppppppabbbbbbbbapppppppabbbbbbbbappppppppappppppplbbbbbbappppppabbbbbbbappppppplbbbbbbbappppppplbbbbbbbappppppppppplbbbbbbappppppappplbbbbbbapppppplbbbbbbapppppapppplbbbbbbapppppabbbbbbapppppabbbbbbapppppapppppplbbbbappppapbbbbappppppbbbbapppplbbbbapppabbbbappppppbbbbbappppabbbbbapppplbbbbappppabbbbbappppapppp')
+  cmds = decode_cmd(solution)
 
   # game loop
   while true
@@ -210,15 +272,30 @@ source_seeds.each_with_index do |seed, game_index|
       puts ""
     end
 
+    cmd = cmds[frame]
+    puts "Command char #{solution[frame]}"
+    if cmd
+      cmd, arg = *cmd
+    else
+      raise "Invalid cmds"
+      #cmd = :move
+      #arg = :SW
+    end
+
     case cmd
     when :move
+      puts("moving")
       if !cur_unit.move(arg, board)
         cur_unit.fix(board)
         cur_unit = nil
       end
 
     when :turn
-      raise "TODO"
+      puts("turning")
+      if !cur_unit.turn(arg, board)
+        cur_unit.fix(board)
+        cur_unit = nil
+      end
     else
       raise "#{cmd}"
     end
