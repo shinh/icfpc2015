@@ -259,6 +259,7 @@ class Unit {
   vector<Pos> members_;
   Pos pivot_;
   int base_x_;
+  vector<int> ys_;
 };
 
 //typedef unordered_map<Decision, vector<Command>> DecisionMap;
@@ -291,14 +292,18 @@ class Board {
     }
   }
 
-  void Fill(Pos p) {
+  void Set(Pos p, bool b) {
     assert(p.x >= 0);
     assert(p.x < W);
     assert(p.y >= 0);
     assert(p.y < H);
     size_t i = p.y * W + p.x;
     assert(i < b_.size());
-    b_[i] = true;
+    b_[i] = b;
+  }
+
+  void Fill(Pos p) {
+    Set(p, true);
   }
 
   bool At(Pos p) const {
@@ -329,6 +334,26 @@ class Board {
       np += Pos(d.x, d.y);
       Fill(np);
     }
+  }
+
+  int Clear() {
+    int n = 0;
+    for (int y = 0; y < H; y++) {
+      bool ok = true;
+      for (int x = 0; x < W; x++) {
+        if (!At(Pos(x, y))) {
+          ok = false;
+          break;
+        }
+      }
+      if (ok) {
+        n++;
+        for (int x = 0; x < W; x++) {
+          Set(Pos(x, y), false);
+        }
+      }
+    }
+    return n;
   }
 
   int GetPosId(Pos p) {
@@ -441,10 +466,11 @@ class Game {
       // TODO: Eval
       Decision decision = decisions.begin()->first;
       board_->Put(u, decision);
+      int ls = board_->Clear();
+      // TODO: old_ls
       const vector<Command>& cmds = decisions.begin()->second;
       copy(cmds.begin(), cmds.end(), back_inserter(commands_));
-      score_ += u.members().size();
-      // TODO: Line removal.
+      score_ += u.members().size() + 100 * (1 + ls) * ls / 2;
 
       fprintf(stderr, "Turn %d s=%d d=%d,%d,%d c=%s n=%zu\n",
               turn_, score_, decision.x, decision.y, decision.r,
