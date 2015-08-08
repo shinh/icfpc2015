@@ -219,6 +219,26 @@ class Unit
   end
 end
 
+def show_board(board, cur_unit)
+  board.each_with_index do |row, y|
+    if y % 2 != 0
+      print ' '
+    end
+    print '|'
+    row.each_with_index do |col, x|
+      if cur_unit && cur_unit.in?(x, y)
+        print 'o'
+      elsif col
+        print 'X'
+      else
+        print ' '
+      end
+      print '|'
+    end
+    puts ""
+  end
+end
+
 lcg = Lcg.new(17)
 assert_eq lcg.raw, 0
 assert_eq lcg.raw, 24107
@@ -245,6 +265,8 @@ solution_all = JSON.load(File.read(ARGV[1]))
 
 total_score = 0
 source_seeds.each_with_index do |seed, game_index|
+  next if game_index != 16
+
   solution = nil
   solution_all.each{|e|
     if e['problemId'].to_i == id && e['seed'].to_i == seed then
@@ -314,41 +336,32 @@ source_seeds.each_with_index do |seed, game_index|
     end
 
     puts "game ##{game_index} turn #{turn} @#{frame} #{cmd} #{arg}"
-    board.each_with_index do |row, y|
-      if y % 2 != 0
-        print ' '
-      end
-      print '|'
-      row.each_with_index do |col, x|
-        if cur_unit && cur_unit.in?(x, y)
-          print 'o'
-        elsif col
-          print 'X'
-        else
-          print ' '
-        end
-        print '|'
-      end
-      puts ""
-    end
+    show_board(board, cur_unit)
 
     unit_score = nil
+    is_decision = false
     case cmd
     when :move
       if !cur_unit.move(arg, board)
+        is_decision = true
         unit_score, ls_old = cur_unit.fix(board, width, height, ls_old)
-        cur_unit = nil
         total_score = total_score + unit_score
       end
 
     when :turn
       if !cur_unit.turn(arg, board)
+        is_decision = true
         unit_score, ls_old = cur_unit.fix(board, width, height, ls_old)
-        cur_unit = nil
         total_score = total_score + unit_score
       end
     else
       raise "#{cmd}"
+    end
+
+    if is_decision
+      puts "game ##{game_index} turn #{turn} decision"
+      show_board(board, cur_unit)
+      cur_unit = nil
     end
   end
 
