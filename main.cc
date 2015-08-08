@@ -131,6 +131,8 @@ struct Pos {
     CHECK_EQ(Pos(2, 0).Rotate(0, 3, Pos(1, 1)), Pos(1, 2));
     CHECK_EQ(Pos(2, 0).Rotate(0, 4, Pos(1, 1)), Pos(0, 1));
     CHECK_EQ(Pos(2, 0).Rotate(0, 5, Pos(1, 1)), Pos(1, 0));
+
+    CHECK_EQ(Pos(0, 1).Rotate(0, 0, Pos(0, 0)), Pos(0, 1));
 #undef CHECK_EQ
   }
 
@@ -167,7 +169,7 @@ struct Pos {
     double nx = gx * cos(gr) - gy * sin(gr);
     double ny = gx * sin(gr) + gy * cos(gr);
     int iy = round(ny / dy) + p.y;
-    int ix = round(nx + pgx - ((iy - y + cy) & 1) * 0.5);
+    int ix = round(nx + pgx - ((iy + cy) & 1) * 0.5);
     //fprintf(stderr, "(%f,%f) => (%f,%f) %d,%d\n", gx, gy, nx, ny, ix, iy);
     return Pos(ix, iy);
 
@@ -450,7 +452,8 @@ class Game {
     while (true) {
       turn_++;
 
-      const Unit& u = units_[lcg_.GetNext() % units_.size()];
+      int uid = lcg_.GetNext() % units_.size();
+      const Unit& u = units_[uid];
       if (!board_->CanPut(u, u.origin())) {
         break;
       }
@@ -484,8 +487,8 @@ class Game {
       copy(cmds.begin(), cmds.end(), back_inserter(commands_));
       score_ += u.members().size() + 100 * (1 + ls) * ls / 2;
 
-      fprintf(stderr, "Turn %d s=%d d=%d,%d,%d c=%s n=%zu\n",
-              turn_, score_, decision.x, decision.y, decision.r,
+      fprintf(stderr, "Turn %d s=%d u=%d d=%d,%d,%d c=%s n=%zu\n",
+              turn_, score_, uid, decision.x, decision.y, decision.r,
               MakeCommandStr(cmds).c_str(),
               decisions.size());
     }
