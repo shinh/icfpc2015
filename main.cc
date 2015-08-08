@@ -627,6 +627,7 @@ class Game {
     turn_ = 0;
     score_ = 0;
 
+#if 0
     {
       const Unit& u = units_[6];
       fprintf(stderr, "===\n");
@@ -639,6 +640,7 @@ class Game {
       board_->Show(u, Decision(-1, 9, 1));
       fprintf(stderr, "===\n");
     }
+#endif
 
 #if 0
     {
