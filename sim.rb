@@ -159,12 +159,13 @@ class Unit
     end
   end
 
-  def fix(board, width, height)
+  def fix(board, width, height, ls_old)
     @members.each do |x, y|
       raise if board[y][x]
       board[y][x] = true
     end
 
+    ls = 0
     (height-1).downto(0){|i|
       line_delete = true
       0.upto(width - 1){|j|
@@ -175,6 +176,7 @@ class Unit
       }
 
       if line_delete then
+        ls = ls + 1
         #puts "line deleted #{i}, #{j}"
         i.downto(1){|k|
           0.upto(width - 1){|l|
@@ -184,6 +186,16 @@ class Unit
         0.upto(width - 1){|k| board[0][k] = false}
       end
     }
+
+    score = @members.size + 100 * (1 + ls) * ls / 2
+    puts "unit move score = #{score}"
+    line_bonus = 0
+    if ls_old > 1 then
+      score = score + ((ls_old - 1) * points / 10).floor
+    end
+    puts "unit whole score = #{score}"
+    
+    [score, ls]
   end
 
   def in?(qx, qy)
@@ -215,6 +227,7 @@ assert_eq lcg.raw, 3383
 assert_eq lcg.raw, 6873
 assert_eq lcg.raw, 16117
 
+ls_old = 0
 board_info = JSON.load(File.read(ARGV[0]))
 height = board_info['height']
 width = board_info['width']
@@ -233,6 +246,7 @@ solution_all.each{|e|
 }
 puts "Given solution is #{solution}"
 
+total_score = 0
 source_seeds.each_with_index do |seed, game_index|
   board = Array.new(height){[false] * width}
   filled.each do |m|
@@ -244,6 +258,7 @@ source_seeds.each_with_index do |seed, game_index|
   spawned_cnt = 0
   frame = -1
   turn = 0
+  ls_old = 0
 
   cmds = decode_cmd(solution)
   #cmds = decode_cmd('pppppppppadddddd')
@@ -302,22 +317,26 @@ source_seeds.each_with_index do |seed, game_index|
       puts ""
     end
 
+    unit_score = nil
     case cmd
     when :move
       if !cur_unit.move(arg, board)
-        cur_unit.fix(board, width, height)
+        unit_score, ls_old = cur_unit.fix(board, width, height, ls_old)
         cur_unit = nil
+        total_score = total_score + unit_score
       end
 
     when :turn
       if !cur_unit.turn(arg, board)
-        cur_unit.fix(board, width, height)
+        unit_score, ls_old = cur_unit.fix(board, width, height, ls_old)
         cur_unit = nil
+        total_score = total_score + unit_score
       end
     else
       raise "#{cmd}"
     end
-
   end
 
 end
+
+puts "total_score is #{total_score}."
