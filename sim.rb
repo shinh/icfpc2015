@@ -24,6 +24,28 @@ class Lcg
   end
 end
 
+def decode_cmd(s)
+  r = []
+  s.each_char do |c|
+    if [?p, ?', ?!, ?., ?0, ?3].include?(c)
+      r << [:move, :W]
+    elsif [?b, ?c, ?e, ?f, ?y, ?2].include?(c)
+      r << [:move, :E]
+    elsif [?a, ?g, ?h, ?i, ?j, ?4].include?(c)
+      r << [:move, :SW]
+    elsif [?l, ?m, ?n, ?o, ' ', ?5].include?(c)
+      r << [:move, :SE]
+    elsif [?d, ?q, ?r, ?v, ?z, ?1].include?(c)
+      r << [:rot, :C]
+    elsif [?k, ?s, ?t, ?u, ?w, ?x].include?(c)
+      r << [:rot, :CC]
+    else
+      raise "Unknown: #{c}"
+    end
+  end
+  r
+end
+
 class Unit
   attr_accessor :members, :pivot
 
@@ -133,6 +155,9 @@ source_seeds.each_with_index do |seed, game_index|
   frame = -1
   turn = 0
 
+  # TODO: Get them from stdin or somewhere.
+  cmds = decode_cmd('iiiiiiimimiiiiiimmimiiiimimimmimimimimmeemmimimiimmmmimmimiimimimmimmimeeemmmimimmimeeemiimiimimimiiiipimiimimmmmeemimeemimimimmmmemimmimmmiiimmmiiipiimiiippiimmmeemimiipimmimmipppimmimeemeemimiieemimmmm')
+
   # game loop
   while true
     frame += 1
@@ -175,9 +200,15 @@ source_seeds.each_with_index do |seed, game_index|
       puts ""
     end
 
-    # TODO: Get them from stdin or somewhere.
-    cmd = :move
-    arg = :SW
+    cmd = cmds[frame]
+    if cmd
+      cmd, arg = *cmd
+    else
+      cmd = :move
+      arg = :SW
+    end
+
+
     case cmd
     when :move
       if !cur_unit.move(arg, board)
