@@ -226,7 +226,7 @@ units = board_info['units']
 solution_all = JSON.load(File.read(ARGV[1]))
 solution = nil
 solution_all.each{|e|
-  if e['problemId'].to_i == ARGV[2].to_i then
+  if e['problemId'].to_i == id then
     solution = e['solution']
   end
 }
@@ -234,8 +234,8 @@ puts "Given solution is #{solution}"
 
 source_seeds.each_with_index do |seed, game_index|
   board = Array.new(height){[false] * width}
-  filled.each do |x, y|
-    board[y][x] = true
+  filled.each do |m|
+    board[m['y']][m['x']] = true
   end
 
   lcg = Lcg.new(seed)
@@ -290,7 +290,7 @@ source_seeds.each_with_index do |seed, game_index|
       print '|'
       row.each_with_index do |col, x|
         if cur_unit && cur_unit.in?(x, y)
-          print 'x'
+          print 'o'
         elsif col
           print 'X'
         else

@@ -492,10 +492,14 @@ class Board {
     Set(p, true);
   }
 
-  bool At(Pos p) const {
-    size_t i = p.y * W + p.x;
+  bool At(int x, int y) const {
+    size_t i = y * W + x;
     assert(i < b_.size());
     return b_[i];
+  }
+
+  bool At(Pos p) const {
+    return At(p.x, p.y);
   }
 
   bool CanFill(Pos p) const {
@@ -532,8 +536,13 @@ class Board {
       }
       if (ok) {
         n++;
+        for (int dy = y; dy > 0; dy--) {
+          for (int x = 0; x < W; x++) {
+            Set(Pos(x, dy), At(x, dy - 1));
+          }
+        }
         for (int x = 0; x < W; x++) {
-          Set(Pos(x, y), false);
+          Set(Pos(x, 0), false);
         }
       }
     }
@@ -542,7 +551,22 @@ class Board {
 
   double Eval() {
     int ls = Clear();
-    return ls;
+    double score = 100 * (1 + ls) * ls / 2;
+
+    for (int y = 0; y < H; y++) {
+      for (int x = 0; x < W; x++) {
+        if (!At(x, y)) {
+          continue;
+        }
+
+        int dy = H - y;
+        int dx = min(x, W - x - 1);
+        score -= 0.1 * dy;
+        score -= 0.001 * dx;
+      }
+    }
+
+    return score;
   }
 
   int GetPosId(Pos p) {
@@ -715,7 +739,7 @@ class Game {
 
   pair<Decision, vector<Command>> ChooseBest(const Unit& u,
                                              DecisionMap decisions) {
-    double best_score = -1;
+    double best_score = -1e99;
     Decision best_decision;
 
     for (const auto& p : decisions) {
