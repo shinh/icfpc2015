@@ -264,7 +264,6 @@ class Unit {
   vector<Pos> members_;
   Pos pivot_;
   int base_x_;
-  vector<int> ys_;
 };
 
 //typedef unordered_map<Decision, vector<Command>> DecisionMap;
