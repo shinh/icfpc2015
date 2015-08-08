@@ -265,8 +265,6 @@ solution_all = JSON.load(File.read(ARGV[1]))
 
 total_score = 0
 source_seeds.each_with_index do |seed, game_index|
-  next if game_index != 16
-
   solution = nil
   solution_all.each{|e|
     if e['problemId'].to_i == id && e['seed'].to_i == seed then
