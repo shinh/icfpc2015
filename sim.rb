@@ -322,7 +322,7 @@ source_seeds.each_with_index do |seed, game_index|
     nb = board.map{|r|r.dup}
     cur_unit.put(nb)
     if seen_boards[[cur_unit.pivot, nb]]
-      raise "Error: We've seen the same board @#{seen_boards[nb]}!"
+      raise "Error: We've seen the same board @#{seen_boards[[cur_unit.pivot, nb]]}!"
     end
     seen_boards[[cur_unit.pivot, nb]] = frame
 

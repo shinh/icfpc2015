@@ -863,6 +863,7 @@ class Game {
     q.emplace(0, ctx);
 
     while (!q.empty()) {
+      int prio = q.begin()->first;
       const auto& ctx = q.begin()->second;
       Decision d = ctx.d;
       Decision pd = ctx.pd;
@@ -900,15 +901,51 @@ class Game {
         continue;
       }
 
-#define NEXT(nd, cmd) do {                      \
-        MakeNiceCommandCtx nctx;                \
-        nctx.d = nd;                            \
-        nctx.pd = d;                            \
-        nctx.bap_bonus = ctx.bap_bonus;         \
-        nctx.cmds = cmds;                       \
-        nctx.cmds.push_back(cmd);               \
-        int dist = abs(d.x - goal.x) + abs(d.y - goal.y) + abs(d.r - goal.r); \
-        q.emplace(dist, nctx);                  \
+      bool did_bap = false;
+      {
+        Decision bd = Decision(d.x + 1, d.y, d.r);
+        Decision ad = Decision(bd.pos().MoveSW(), bd.r);
+        Decision pd = Decision(ad.x - 1, ad.y, ad.r);
+        if (prio > -100000 &&
+            board_->CanPut(u, bd) &&
+            board_->CanPut(u, ad) &&
+            board_->CanPut(u, pd) &&
+            !seen->count(DecisionId(u, bd)) &&
+            !seen->count(DecisionId(u, ad)) &&
+            !seen->count(DecisionId(u, pd))) {
+          did_bap = true;
+          MakeNiceCommandCtx nctx;
+
+          nctx.d = pd;
+          nctx.pd = ad;
+          nctx.bap_bonus = ctx.bap_bonus - 100;
+          nctx.cmds = cmds;
+          nctx.cmds.push_back(MOVE_E);
+          nctx.cmds.push_back(MOVE_SW);
+          nctx.cmds.push_back(MOVE_W);
+          int dist = abs(pd.x - goal.x) + abs(pd.y - goal.y) + abs(pd.r - goal.r);
+          q.emplace(dist + nctx.bap_bonus - 200000, nctx);
+
+          nctx.d = ad;
+          nctx.pd = bd;
+          nctx.bap_bonus = ctx.bap_bonus;
+          nctx.cmds = cmds;
+          nctx.cmds.push_back(MOVE_E);
+          nctx.cmds.push_back(MOVE_SW);
+          dist = abs(ad.x - goal.x) + abs(ad.y - goal.y) + abs(ad.r - goal.r);
+          q.emplace(dist + nctx.bap_bonus - 300000, nctx);
+        }
+      }
+
+#define NEXT(nd, cmd) do {                                              \
+        MakeNiceCommandCtx nctx;                                        \
+        nctx.d = nd;                                                    \
+        nctx.pd = d;                                                    \
+        nctx.bap_bonus = ctx.bap_bonus;                                 \
+        nctx.cmds = cmds;                                               \
+        nctx.cmds.push_back(cmd);                                       \
+        int dist = abs(nd.x - goal.x) + abs(nd.y - goal.y) + abs(nd.r - goal.r); \
+        q.emplace(dist + nctx.bap_bonus + (cmd == MOVE_W) * 5 - (cmd == MOVE_E && did_bap ? -500000 : 0), nctx); \
       } while (0)
       NEXT(Decision(d.x - 1, d.y, d.r), MOVE_W);
       NEXT(Decision(d.x + 1, d.y, d.r), MOVE_E);
