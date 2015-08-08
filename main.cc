@@ -536,8 +536,13 @@ class Board {
       }
       if (ok) {
         n++;
+        for (int dy = y; dy > 0; dy--) {
+          for (int x = 0; x < W; x++) {
+            Set(Pos(x, dy), At(x, dy - 1));
+          }
+        }
         for (int x = 0; x < W; x++) {
-          Set(Pos(x, y), false);
+          Set(Pos(x, 0), false);
         }
       }
     }
