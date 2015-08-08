@@ -23,7 +23,8 @@ ans = []
     score += $1.to_i
   end
 
-  STDERR.puts "#{Time.now - start_time} score=#{score/results.size} #{results}"
+  #STDERR.puts "#{Time.now - start_time} score=#{score/results.size} #{results}"
+  STDERR.puts "#{Time.now - start_time} score=#{score/results.size}"
   ans += a
 }
 
