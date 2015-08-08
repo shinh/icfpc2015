@@ -231,7 +231,7 @@ solution_all.each{|e|
     solution = e['solution']
   end
 }
-puts "Given solution is #{solution}"
+puts "Given solution is #{solution[0,200]}... (len=#{solution.size})"
 
 source_seeds.each_with_index do |seed, game_index|
   board = Array.new(height){[false] * width}
@@ -318,6 +318,10 @@ source_seeds.each_with_index do |seed, game_index|
       raise "#{cmd}"
     end
 
+  end
+
+  if solution.size > frame + 1
+    puts "WARNING: too long solution? #{solution.size} vs #{frame}"
   end
 
 end
