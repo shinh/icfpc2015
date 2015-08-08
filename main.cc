@@ -635,11 +635,12 @@ class Board {
 
 class Game {
  public:
-  Game(const Problem& problem, int seed)
+  Game(const Problem& problem, int seed, int game_index)
       : lcg_(seed) {
     H = problem.height;
     W = problem.width;
     id_ = problem.id;
+    game_index_ = game_index;
     source_length_ = problem.source_length;
     for (const auto& u : problem.units) {
       vector<Pos> members;
@@ -737,8 +738,9 @@ class Game {
       }
       score_ += u.members().size() + 100 * (1 + ls) * ls / 2;
 
-      fprintf(stderr, "Turn %d s=%d u=%d d=%d,%d,%d c=%s n=%zu\n",
-              turn_, score_, uid, decision.x, decision.y, decision.r,
+      fprintf(stderr, "Game %d Turn %d s=%d u=%d d=%d,%d,%d c=%s n=%zu\n",
+              game_index_, turn_, score_, uid,
+              decision.x, decision.y, decision.r,
               MakeCommandStr(cmds).c_str(),
               decisions.size());
     }
@@ -773,6 +775,7 @@ class Game {
  private:
   int H, W;
   int id_;
+  int game_index_;
   int source_length_;
   Lcg lcg_;
   vector<Pos> filled_;
@@ -801,8 +804,9 @@ int main(int argc, char* argv[]) {
   Problem problem(filename);
   //unordered_map<int, string> solutions;
   vector<pair<int, string>> solutions;
+  int game_index = 0;
   for (int seed : problem.source_seeds) {
-    Game game(problem, seed);
+    Game game(problem, seed, game_index++);
     game.Play();
     //bool ok = solutions.emplace(seed, MakeCommandStr(game.commands())).second;
     //assert(ok);
