@@ -172,16 +172,17 @@ class Unit
           line_delete = false
           break
         end
-
-        if line_delete then
-          (i - 1).downto(1){|k|
-            0.upto(width - 1){|l|
-              board[k][l] = board[k-1][l]
-            }
-          }
-          0.upto(width - 1){|k| board[0][k] = false}
-        end
       }
+
+      if line_delete then
+        #puts "line deleted #{i}, #{j}"
+        i.downto(1){|k|
+          0.upto(width - 1){|l|
+            board[k][l] = board[k-1][l]
+          }
+        }
+        0.upto(width - 1){|k| board[0][k] = false}
+      end
     }
   end
 
