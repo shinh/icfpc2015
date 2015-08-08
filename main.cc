@@ -203,6 +203,9 @@ struct Decision {
   Decision(Pos p, int r0)
       : x(p.x), y(p.y), r(r0) {
   }
+  Decision()
+      : x(-1), y(-1), r(-1) {
+  }
 
   Pos pos() const {
     return Pos(x, y);
@@ -356,6 +359,11 @@ class Board {
     return n;
   }
 
+  double Eval() {
+    int ls = Clear();
+    return ls;
+  }
+
   int GetPosId(Pos p) {
     // +2 for boundaries.
     return p.y * (W + 2) + p.x;
@@ -463,12 +471,16 @@ class Game {
       }
 #endif
 
+      auto d = ChooseBest(u, decisions);
+
       // TODO: Eval
-      Decision decision = decisions.begin()->first;
+      Decision decision = d.first;
       board_->Put(u, decision);
+      board_->Show();
+
       int ls = board_->Clear();
       // TODO: old_ls
-      const vector<Command>& cmds = decisions.begin()->second;
+      const vector<Command>& cmds = d.second;
       copy(cmds.begin(), cmds.end(), back_inserter(commands_));
       score_ += u.members().size() + 100 * (1 + ls) * ls / 2;
 
@@ -476,10 +488,31 @@ class Game {
               turn_, score_, decision.x, decision.y, decision.r,
               MakeCommandStr(cmds).c_str(),
               decisions.size());
-      board_->Show();
     }
 
     fprintf(stderr, "turn=%d/%d score=%d\n", turn_, source_length_, score_);
+  }
+
+  pair<Decision, vector<Command>> ChooseBest(const Unit& u,
+                                             DecisionMap decisions) {
+    double best_score = -1;
+    Decision best_decision;
+
+    for (const auto& p : decisions) {
+      Decision d = p.first;
+
+      Board nb = *board_;
+      nb.Put(u, d);
+      double score = nb.Eval();
+      if (best_score < score) {
+        best_score = score;
+        best_decision = d;
+      }
+    }
+
+    auto found = decisions.find(best_decision);
+    assert(found != decisions.end());
+    return *found;
   }
 
   const vector<Command>& commands() const { return commands_; }

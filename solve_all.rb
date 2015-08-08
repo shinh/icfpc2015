@@ -8,11 +8,20 @@ FileUtils.mkdir_p 'logs'
 ans = []
 24.times{|i|
   prob = "problems/problem_#{i}.json"
-  log = "logs/#{i}.log"
+  logfile = "logs/#{i}.log"
   STDERR.print "#{prob} "
   start_time = Time.now
-  a = JSON.load(`./play_icfp2015 -f #{prob} 2> #{log}`)
-  STDERR.puts "#{Time.now - start_time} #{`tail -1 #{log}`}"
+  a = JSON.load(`./play_icfp2015 -f #{prob} 2> #{logfile}`)
+
+  log = File.read(logfile)
+  score = 0
+  results = []
+  log.scan(/^turn=.* score=(\d+)/) do
+    results << $&
+    score += $1.to_i
+  end
+
+  STDERR.puts "#{Time.now - start_time} score=#{score/results.size} #{results}"
   ans += a
 }
 
