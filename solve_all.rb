@@ -8,7 +8,7 @@ system("make")
 FileUtils.mkdir_p 'logs'
 
 ans = []
-24.times{|i|
+25.times{|i|
   prob = "problems/problem_#{i}.json"
   logfile = "logs/#{i}.log"
   STDERR.print "#{prob} "
