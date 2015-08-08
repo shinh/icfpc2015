@@ -133,6 +133,8 @@ struct Pos {
     CHECK_EQ(Pos(2, 0).Rotate(0, 5, Pos(1, 1)), Pos(1, 0));
 
     CHECK_EQ(Pos(0, 1).Rotate(0, 0, Pos(0, 0)), Pos(0, 1));
+
+    CHECK_EQ(Pos(0, 1).Rotate(0, 0, Pos(1, 1)), Pos(0, 1));
 #undef CHECK_EQ
   }
 
@@ -215,8 +217,14 @@ struct Decision {
 
   Pos Apply(Pos p, Pos pivot) const {
     Pos np = p.Rotate(y, r, pivot);
-    np += Pos(x, y);
-    return np;
+    int nx = x + np.x;
+    int ny = y + np.y;
+    int dx = 0;
+    if (np.y % 2)
+      dx = 1 - ny % 2;
+    //int dx = np.y % 2 - ny % 2;
+    //fprintf(stderr, "np=(%d,%d) %d %d %d\n", np.x, np.y, nx, ny, dx);
+    return Pos(nx + dx, ny);
   }
 
   bool operator==(Decision d) const {
@@ -265,6 +273,7 @@ class Unit {
   const vector<Pos>& members() const { return members_; }
   Pos pivot() const { return pivot_; }
   Decision origin() const { return Decision(base_x_, 0, 0); }
+  int base_x() const { return base_x_; }
 
  private:
   vector<Pos> members_;
@@ -418,8 +427,8 @@ class Board {
     NEXT(Decision(d.x + 1, d.y, d.r), MOVE_E);
     NEXT(Decision(d.pos().MoveSW(), d.r), MOVE_SW);
     NEXT(Decision(d.pos().MoveSE(), d.r), MOVE_SE);
-    NEXT(Decision(d.x, d.y, (d.r + 1) % 6), ROT_C);
-    NEXT(Decision(d.x, d.y, (d.r + 5) % 6), ROT_CC);
+    //NEXT(Decision(d.x, d.y, (d.r + 1) % 6), ROT_C);
+    //NEXT(Decision(d.x, d.y, (d.r + 5) % 6), ROT_CC);
 #undef NEXT
   }
 
@@ -460,12 +469,23 @@ class Game {
     turn_ = 0;
     score_ = 0;
 
+#if 0
+    {
+      const Unit& u = units_[3];
+      board_->Show(u, u.origin());
+      board_->Show(u, Decision(u.base_x() + 4, 0, 0));
+      fprintf(stderr, "%d\n", board_->CanPut(u, Decision(4, 0, 0)));
+    }
+#endif
+
     while (true) {
       turn_++;
 
       int uid = lcg_.GetNext() % units_.size();
       const Unit& u = units_[uid];
       if (!board_->CanPut(u, u.origin())) {
+        fprintf(stderr, "dead :( u=%d bx=%d\n", uid, u.base_x());
+        board_->Show(u, u.origin());
         break;
       }
 

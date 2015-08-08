@@ -157,6 +157,7 @@ source_seeds.each_with_index do |seed, game_index|
 
   # TODO: Get them from stdin or somewhere.
   cmds = decode_cmd('iiiiiiimimiiiiiimmimiiiimimimmimimimimmeemmimimiimmmmimmimiimimimmimmimeeemmmimimmimeeemiimiimimimiiiipimiimimmmmeemimeemimimimmmmemimmimmmiiimmmiiipiimiiippiimmmeemimiipimmimmipppimmimeemeemimiieemimmmm')
+  #cmds = decode_cmd('ppppppppapppplbbbbbbbappppppppppppabbbbbbbbapppppppabbbbbbbbappppppppappppppplbbbbbbappppppabbbbbbbappppppplbbbbbbbappppppplbbbbbbbappppppppppplbbbbbbappppppappplbbbbbbapppppplbbbbbbapppppapppplbbbbbbapppppabbbbbbapppppabbbbbbapppppapppppplbbbbappppapbbbbappppppbbbbapppplbbbbapppabbbbappppppbbbbbappppabbbbbapppplbbbbappppabbbbbappppapppp')
 
   # game loop
   while true
@@ -172,8 +173,9 @@ source_seeds.each_with_index do |seed, game_index|
 
       index = lcg.pick(units.size)
       unit = units[index]
-      min_x = unit['members'].min{|m|m['x']}['x']
-      max_x = unit['members'].max{|m|m['x']}['x']
+      xs = unit['members'].map{|m|m['x']}
+      min_x = xs.min
+      max_x = xs.max
       size_x = max_x - min_x + 1
       base_x = (width - size_x) / 2
       cur_unit = Unit.new(unit, base_x)
@@ -181,7 +183,15 @@ source_seeds.each_with_index do |seed, game_index|
       # TODO: Check if it can appear.
     end
 
-    puts "game ##{game_index} turn #{turn} @#{frame}"
+    cmd = cmds[frame]
+    if cmd
+      cmd, arg = *cmd
+    else
+      cmd = :move
+      arg = :SW
+    end
+
+    puts "game ##{game_index} turn #{turn} @#{frame} #{cmd} #{arg}"
     board.each_with_index do |row, y|
       if y % 2 != 0
         print ' '
@@ -199,15 +209,6 @@ source_seeds.each_with_index do |seed, game_index|
       end
       puts ""
     end
-
-    cmd = cmds[frame]
-    if cmd
-      cmd, arg = *cmd
-    else
-      cmd = :move
-      arg = :SW
-    end
-
 
     case cmd
     when :move
