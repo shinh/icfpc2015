@@ -91,9 +91,9 @@ class Unit
     dy = geoy - geopy
     case dir
     when :C
-      theta = - Math::PI / 3
-    when :CC
       theta = Math::PI / 3
+    when :CC
+      theta = - Math::PI / 3
     else
       raise "#{arg}"
     end
@@ -219,7 +219,8 @@ source_seeds.each_with_index do |seed, game_index|
   frame = -1
   turn = 0
 
-  cmds = decode_cmd(solution)
+  #cmds = decode_cmd(solution)
+  cmds = decode_cmd('pppppppppadddddd')
 
   # game loop
   while true
@@ -284,14 +285,12 @@ source_seeds.each_with_index do |seed, game_index|
 
     case cmd
     when :move
-      puts("moving")
       if !cur_unit.move(arg, board)
         cur_unit.fix(board)
         cur_unit = nil
       end
 
     when :turn
-      puts("turning")
       if !cur_unit.turn(arg, board)
         cur_unit.fix(board)
         cur_unit = nil
