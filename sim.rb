@@ -159,12 +159,30 @@ class Unit
     end
   end
 
-  def fix(board)
+  def fix(board, width, height)
     @members.each do |x, y|
       raise if board[y][x]
       board[y][x] = true
     end
-    # TODO: Clear a row.
+
+    (height-1).downto(0){|i|
+      line_delete = true
+      0.upto(width - 1){|j|
+        if board[i][j] == false then
+          line_delete = false
+          break
+        end
+
+        if line_delete then
+          (i - 1).downto(1){|k|
+            0.upto(width - 1){|l|
+              board[k][l] = board[k-1][l]
+            }
+          }
+          0.upto(width - 1){|k| board[0][k] = false}
+        end
+      }
+    }
   end
 
   def in?(qx, qy)
@@ -182,7 +200,6 @@ class Unit
     end
     return true
   end
-
 end
 
 lcg = Lcg.new(17)
@@ -287,13 +304,13 @@ source_seeds.each_with_index do |seed, game_index|
     case cmd
     when :move
       if !cur_unit.move(arg, board)
-        cur_unit.fix(board)
+        cur_unit.fix(board, width, height)
         cur_unit = nil
       end
 
     when :turn
       if !cur_unit.turn(arg, board)
-        cur_unit.fix(board)
+        cur_unit.fix(board, width, height)
         cur_unit = nil
       end
     else
