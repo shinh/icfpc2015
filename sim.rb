@@ -242,16 +242,17 @@ source_seeds = board_info['sourceSeeds']
 units = board_info['units']
 
 solution_all = JSON.load(File.read(ARGV[1]))
-solution = nil
-solution_all.each{|e|
-  if e['problemId'].to_i == id then
-    solution = e['solution']
-  end
-}
-puts "Given solution is #{solution[0,200]}... (len=#{solution.size})"
 
 total_score = 0
 source_seeds.each_with_index do |seed, game_index|
+  solution = nil
+  solution_all.each{|e|
+    if e['problemId'].to_i == id && e['seed'].to_i == seed then
+      solution = e['solution']
+    end
+  }
+  puts "Given solution is #{solution[0,800]}... (len=#{solution.size})"
+
   board = Array.new(height){[false] * width}
   filled.each do |m|
     board[m['y']][m['x']] = true
@@ -301,7 +302,7 @@ source_seeds.each_with_index do |seed, game_index|
     nb = board.map{|r|r.dup}
     cur_unit.put(nb)
     if seen_boards[nb]
-      puts "Error: We've seen the same board @#{seen_boards[nb]}!"
+      raise "Error: We've seen the same board @#{seen_boards[nb]}!"
     end
     seen_boards[nb] = frame
 
@@ -352,7 +353,7 @@ source_seeds.each_with_index do |seed, game_index|
   end
 
   if solution.size > frame + 1
-    puts "WARNING: too long solution? #{solution.size} vs #{frame}"
+    raise "WARNING: too long solution? #{solution.size} vs #{frame}"
   end
 
 end
