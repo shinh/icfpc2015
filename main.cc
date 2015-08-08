@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <map>
 #include <memory>
+#include <queue>
 #include <set>
 #include <string>
 #include <vector>
@@ -101,6 +102,14 @@ struct Pos {
   Pos() : x(-1), y(-1) {}
   Pos(int x0, int y0) : x(x0), y(y0) {}
   explicit Pos(pair<int, int> p) : x(p.first), y(p.second) {}
+
+  bool operator<(const Pos& p) const {
+    if (x < p.x)
+      return true;
+    if (x > p.x)
+      return false;
+    return y < p.y;
+  }
 
   static void CheckEq(Pos a, Pos b, const char* f, int l) {
     if (a != b) {
@@ -582,11 +591,11 @@ class Board {
   }
 #endif
 
-  void GetDecisionId(const Unit& u, Decision d, set<pair<int, int>>* id) {
-    id->insert(GetPosId(u.pivot()));
+  void GetDecisionId(const Unit& u, Decision d, set<Pos>* id) {
+    id->insert(u.pivot());
     for (Pos p : u.members()) {
       Pos np = d.Apply(p, u.pivot());
-      id->insert(GetPosId(np));
+      id->insert(np);
     }
   }
 
@@ -594,7 +603,7 @@ class Board {
                                            Decision d,
                                            Decision pd,
                                            vector<Command>* commands,
-                                           set<set<pair<int, int>>>* seen,
+                                           set<set<Pos>>* seen,
                                            DecisionMap* out) {
     //fprintf(stderr, "%d %d %d %zu\n", d.x, d.y, d.r, seen->size());
     if (!CanPut(u, d)) {
@@ -603,7 +612,7 @@ class Board {
       return;
     }
 
-    set<pair<int, int>> decision_id;
+    set<Pos> decision_id;
     GetDecisionId(u, d, &decision_id);
     if (!seen->insert(decision_id).second)
       return;
@@ -625,7 +634,7 @@ class Board {
   void GetPossibleDecisionsWithComands(const Unit& u, DecisionMap* out) {
      Decision d = u.origin();
      vector<Command> commands;
-     set<set<pair<int, int>>> seen;
+     set<set<Pos>> seen;
      GetPossibleDecisionsWithComandsImpl(u, d, d, &commands, &seen, out);
   }
 
