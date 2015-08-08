@@ -159,11 +159,15 @@ class Unit
     end
   end
 
-  def fix(board, width, height, ls_old)
+  def put(board)
     @members.each do |x, y|
       raise if board[y][x]
       board[y][x] = true
     end
+  end
+
+  def fix(board, width, height, ls_old)
+    put(board)
 
     ls = 0
     (height-1).downto(0){|i|
@@ -259,6 +263,7 @@ source_seeds.each_with_index do |seed, game_index|
   frame = -1
   turn = 0
   ls_old = 0
+  seen_boards = nil
 
   cmds = decode_cmd(solution)
   #cmds = decode_cmd('pppppppppadddddd')
@@ -289,7 +294,16 @@ source_seeds.each_with_index do |seed, game_index|
         puts 'Unit cannot appear to this board. Finishing game.'
         break
       end
+
+      seen_boards = {}
     end
+
+    nb = board.map{|r|r.dup}
+    cur_unit.put(nb)
+    if seen_boards[nb]
+      puts "Error: We've seen the same board @#{seen_boards[nb]}!"
+    end
+    seen_boards[nb] = frame
 
     cmd = cmds[frame]
     if cmd
