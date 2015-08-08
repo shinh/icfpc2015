@@ -209,7 +209,7 @@ units = board_info['units']
 solution_all = JSON.load(File.read(ARGV[1]))
 solution = nil
 solution_all.each{|e|
-  if e['problemId'].to_i == ARGV[2].to_i then
+  if e['problemId'].to_i == id then
     solution = e['solution']
   end
 }
