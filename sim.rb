@@ -217,8 +217,8 @@ puts "Given solution is #{solution}"
 
 source_seeds.each_with_index do |seed, game_index|
   board = Array.new(height){[false] * width}
-  filled.each do |x, y|
-    board[y][x] = true
+  filled.each do |m|
+    board[m['y']][m['x']] = true
   end
 
   lcg = Lcg.new(seed)
