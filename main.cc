@@ -339,8 +339,7 @@ class Board {
 
   bool CanPut(const Unit& u, const Decision& d) {
     for (Pos p : u.members()) {
-      Pos np = p.Rotate(d.y, d.r, u.pivot());
-      np += Pos(d.x, d.y);
+      Pos np = d.Apply(p, u.pivot());
       if (!CanFill(np))
         return false;
     }
@@ -349,8 +348,7 @@ class Board {
 
   void Put(const Unit& u, const Decision& d) {
     for (Pos p : u.members()) {
-      Pos np = p.Rotate(d.y, d.r, u.pivot());
-      np += Pos(d.x, d.y);
+      Pos np = d.Apply(p, u.pivot());
       Fill(np);
     }
   }
@@ -388,8 +386,7 @@ class Board {
   void GetDecisionId(const Unit& u, Decision d, IntSet* id) {
     id->insert(GetPosId(u.pivot()));
     for (Pos p : u.members()) {
-      Pos np = p.Rotate(d.y, d.r, u.pivot());
-      np += Pos(d.x, d.y);
+      Pos np = d.Apply(p, u.pivot());
       id->insert(GetPosId(np));
     }
   }
