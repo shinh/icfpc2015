@@ -4,7 +4,13 @@ set -ex
 
 mkdir -p submissions
 
-curl --user :$(cat api_token) -X POST -H "Content-Type: application/json" -d @out.json https://davar.icfpcontest.org/teams/196/solutions
+ruby solve_all.rb 2>&1 | tee /tmp/log
 
 export TZ=UTC
-cp out.json submissions/`date +'%H%M%d'`.json
+d=`date +'%H%M%d'`
+
+curl --user :$(cat api_token) -X POST -H "Content-Type: application/json" -d @out.json https://davar.icfpcontest.org/teams/196/solutions
+
+cp /tmp/log submissions/$d.log
+cp -r logs submissions/logs-$d
+cp out.json submissions/$d.json
