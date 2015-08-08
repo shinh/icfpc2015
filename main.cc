@@ -7,6 +7,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <string>
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
@@ -635,8 +636,10 @@ class Board {
 
 class Game {
  public:
-  Game(const Problem& problem, int seed, int game_index)
-      : lcg_(seed) {
+  Game(const Problem& problem, int seed, int game_index,
+       const vector<string>& phrases)
+      : lcg_(seed),
+        phrases_(phrases) {
     H = problem.height;
     W = problem.width;
     id_ = problem.id;
@@ -745,7 +748,33 @@ class Game {
               decisions.size());
     }
 
-    fprintf(stderr, "turn=%d/%d score=%d\n", turn_, source_length_, score_);
+    int phrase_score = GetPhraseScore();
+
+    fprintf(stderr, "turn=%d/%d score=%d (%d+%d)\n",
+            turn_, source_length_,
+            score_ + phrase_score, score_, phrase_score);
+  }
+
+  int GetPhraseScore() const {
+    int score = 0;
+    string cmd = MakeCommandStr(commands_);
+    for (string phrase : phrases_) {
+      bool is_first = true;
+      size_t index = 0;
+      while (index < cmd.size()) {
+        index = cmd.find(phrase, index);
+        if (index == string::npos)
+          break;
+        index++;
+
+        if (is_first) {
+          score += 300;
+          is_first = false;
+        }
+        score += 2 * phrase.size();
+      }
+    }
+    return score;
   }
 
   pair<Decision, vector<Command>> ChooseBest(const Unit& u,
@@ -780,6 +809,7 @@ class Game {
   Lcg lcg_;
   vector<Pos> filled_;
   vector<Unit> units_;
+  vector<string> phrases_;
 
   unique_ptr<Board> board_;
   int turn_;
@@ -792,13 +822,23 @@ int main(int argc, char* argv[]) {
   Pos::Test();
   Decision::Test();
 
+  vector<string> phrases;
+
   const char* filename = "problems/problem_0.json";
   for (int i = 1; i < argc; i++) {
     const char* arg = argv[i];
     if (!strcmp(arg, "-f")) {
       filename = argv[++i];
+    } else if (!strcmp(arg, "-p")) {
+      phrases.push_back(argv[++i]);
     }
     // TODO: Implement the rest.
+  }
+
+  if (phrases.empty()) {
+    // Known phrases.
+    phrases.push_back("ei!");
+    phrases.push_back("bap");
   }
 
   Problem problem(filename);
@@ -806,7 +846,7 @@ int main(int argc, char* argv[]) {
   vector<pair<int, string>> solutions;
   int game_index = 0;
   for (int seed : problem.source_seeds) {
-    Game game(problem, seed, game_index++);
+    Game game(problem, seed, game_index++, phrases);
     game.Play();
     //bool ok = solutions.emplace(seed, MakeCommandStr(game.commands())).second;
     //assert(ok);
