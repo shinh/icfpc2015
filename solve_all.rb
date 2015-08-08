@@ -3,6 +3,8 @@
 require 'json'
 require 'fileutils'
 
+system("make")
+
 FileUtils.mkdir_p 'logs'
 
 ans = []

@@ -2,8 +2,6 @@
 
 set -ex
 
-make
-
 mkdir -p submissions
 
 ruby solve_all.rb 2>&1 | tee /tmp/log
