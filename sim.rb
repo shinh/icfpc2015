@@ -127,6 +127,7 @@ class Unit
         pos[0] = nx
         pos[1] = ny
       end
+      @pivot = moved_pos(@pivot[0], @pivot[1], dir)
       return true
     else
       return false
