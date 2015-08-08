@@ -111,6 +111,14 @@ struct Pos {
     return y < p.y;
   }
 
+  bool operator>(const Pos& p) const {
+    if (x > p.x)
+      return true;
+    if (x < p.x)
+      return false;
+    return y > p.y;
+  }
+
   static void CheckEq(Pos a, Pos b, const char* f, int l) {
     if (a != b) {
       fprintf(stderr, "%s:%d: (%d,%d) vs (%d,%d)\n",
@@ -453,6 +461,31 @@ class Unit {
 //typedef unordered_map<Decision, vector<Command>> DecisionMap;
 typedef map<Decision, vector<Command>> DecisionMap;
 
+struct DecisionId {
+  DecisionId(const Unit& u, Decision d) {
+    p = d.Apply(u.pivot(), u.pivot());
+    for (Pos p : u.members()) {
+      Pos np = d.Apply(p, u.pivot());
+      m.insert(np);
+    }
+  }
+
+  bool operator<(const DecisionId d) const {
+    if (p < d.p)
+      return true;
+    if (p > d.p)
+      return false;
+    return m < d.m;
+  }
+
+  bool operator==(const DecisionId d) const {
+    return p == d.p && m == d.m;
+  }
+
+  Pos p;
+  set<Pos> m;
+};
+
 class Board {
  public:
   Board(int width, int height, const vector<Pos>& filled) {
@@ -603,7 +636,7 @@ class Board {
                                            Decision d,
                                            Decision pd,
                                            vector<Command>* commands,
-                                           set<set<Pos>>* seen,
+                                           set<Decision>* seen,
                                            DecisionMap* out) {
     //fprintf(stderr, "%d %d %d %zu\n", d.x, d.y, d.r, seen->size());
     if (!CanPut(u, d)) {
@@ -612,9 +645,7 @@ class Board {
       return;
     }
 
-    set<Pos> decision_id;
-    GetDecisionId(u, d, &decision_id);
-    if (!seen->insert(decision_id).second)
+    if (!seen->insert(d).second)
       return;
 
 #define NEXT(nd, cmd) do {                                              \
@@ -634,7 +665,7 @@ class Board {
   void GetPossibleDecisionsWithComands(const Unit& u, DecisionMap* out) {
      Decision d = u.origin();
      vector<Command> commands;
-     set<set<Pos>> seen;
+     set<Decision> seen;
      GetPossibleDecisionsWithComandsImpl(u, d, d, &commands, &seen, out);
   }
 
@@ -738,13 +769,17 @@ class Game {
       auto d = ChooseBest(u, decisions);
 
       Decision decision = d.first;
+
+      string cmds = MakeNiceCommandStr(u, decision);
+      commands_ += cmds;
+
       board_->Put(u, decision);
       board_->Show(u, decision);
 
       int ls = board_->Clear();
       // TODO: old_ls
-      const vector<Command>& cmds = d.second;
-      copy(cmds.begin(), cmds.end(), back_inserter(commands_));
+      //const vector<Command>& cmds = d.second;
+      //copy(cmds.begin(), cmds.end(), back_inserter(commands_));
       if (ls > 0) {
         fprintf(stderr, "line remove! %d\n", ls);
       }
@@ -753,7 +788,7 @@ class Game {
       fprintf(stderr, "Game %d Turn %d s=%d u=%d d=%d,%d,%d c=%s n=%zu\n",
               game_index_, turn_, score_, uid,
               decision.x, decision.y, decision.r,
-              MakeCommandStr(cmds).c_str(),
+              cmds.c_str(),
               decisions.size());
     }
 
@@ -766,7 +801,7 @@ class Game {
 
   int GetPhraseScore() const {
     int score = 0;
-    string cmd = MakeCommandStr(commands_);
+    string cmd = commands_;
     for (string phrase : phrases_) {
       bool is_first = true;
       size_t index = 0;
@@ -808,7 +843,153 @@ class Game {
     return *found;
   }
 
-  const vector<Command>& commands() const { return commands_; }
+  const string& commands() const { return commands_; }
+
+  struct MakeNiceCommandCtx {
+    Decision d;
+    Decision pd;
+    vector<Command> cmds;
+    int bap_bonus;
+  };
+
+  bool MakeNiceCommandStrFrom(const Unit& u, Decision d, Decision goal,
+                              map<DecisionId, Decision>* seen,
+                              string* out) {
+    multimap<int, MakeNiceCommandCtx> q;
+    MakeNiceCommandCtx ctx;
+    ctx.d = d;
+    ctx.pd = d;
+    ctx.bap_bonus = 0;
+    q.emplace(0, ctx);
+
+    while (!q.empty()) {
+      const auto& ctx = q.begin()->second;
+      Decision d = ctx.d;
+      Decision pd = ctx.pd;
+      //fprintf(stderr, "%d,%d,%d => %d,%d,%d\n", pd.x, pd.y, pd.r, d.x, d.y, d.r);
+      vector<Command> cmds = ctx.cmds;
+      q.erase(q.begin());
+
+      if (!board_->CanPut(u, d)) {
+        if (DecisionId(u, pd) == DecisionId(u, goal)) {
+          *out += MakeCommandStr(cmds);
+          return true;
+        }
+        //fprintf(stderr, "cannot put...\n");
+        continue;
+      }
+
+#if 0
+      set<Pos> decision_id;
+      board_->GetDecisionId(u, d, &decision_id);
+      if (!seen->insert(decision_id).second)
+        continue;
+
+      if (!seen->insert(d).second)
+        continue;
+#endif
+
+      if (!seen->emplace(DecisionId(u, d), d).second) {
+#if 0
+        auto found = seen->find(DecisionId(u, d));
+        DecisionId sid = found->first;
+        Decision sd = found->second;
+        fprintf(stderr, "seen... %d,%d %d,%d,%d\n",
+                PF(sid.p), sd.x, sd.y, sd.r);
+#endif
+        continue;
+      }
+
+#define NEXT(nd, cmd) do {                      \
+        MakeNiceCommandCtx nctx;                \
+        nctx.d = nd;                            \
+        nctx.pd = d;                            \
+        nctx.bap_bonus = ctx.bap_bonus;         \
+        nctx.cmds = cmds;                       \
+        nctx.cmds.push_back(cmd);               \
+        int dist = abs(d.x - goal.x) + abs(d.y - goal.y) + abs(d.r - goal.r); \
+        q.emplace(dist, nctx);                  \
+      } while (0)
+      NEXT(Decision(d.x - 1, d.y, d.r), MOVE_W);
+      NEXT(Decision(d.x + 1, d.y, d.r), MOVE_E);
+      NEXT(Decision(d.pos().MoveSW(), d.r), MOVE_SW);
+      NEXT(Decision(d.pos().MoveSE(), d.r), MOVE_SE);
+      NEXT(Decision(d.x, d.y, (d.r + 1) % 6), ROT_C);
+      NEXT(Decision(d.x, d.y, (d.r + 5) % 6), ROT_CC);
+#undef NEXT
+    }
+
+    return false;
+  }
+
+  string MakeNiceCommandStr(const Unit& u, Decision goal) {
+#if 1
+    for (int n = H - 1; n > 0; n--) {
+      map<DecisionId, Decision> seen;
+      string out;
+      bool ok = true;
+      Decision d = u.origin();
+      seen.emplace(DecisionId(u, d), d);
+
+      for (int i = 0; i < n; i++) {
+        out += "bap";
+        for (int j = 0; j < (i < n - 1 ? 4 : 3); j++) {
+          if (j == 0) {
+            d = Decision(d.x + 1, d.y, d.r);
+          } else if (j == 1) {
+            d = Decision(d.pos().MoveSW(), d.r);
+          } else if (j == 2) {
+            d = Decision(d.x - 1, d.y, d.r);
+          } else if (j == 3) {
+            Decision td;
+            td = Decision(d.x, d.y, (d.r + 1) % 6);
+            if (board_->CanPut(u, td) && !seen.count(DecisionId(u, td))) {
+              d = td;
+              out += 'd';
+            } else {
+              td = Decision(d.x, d.y, (d.r + 5) % 6);
+              if (board_->CanPut(u, td) && !seen.count(DecisionId(u, td))) {
+                d = td;
+                out += 'k';
+              } else {
+                d = Decision(d.pos().MoveSE(), d.r);
+                out += 'l';
+              }
+            }
+          }
+
+          if (!board_->CanPut(u, d)) {
+            ok = false;
+            break;
+          }
+          if (i < n - 1 || j < 2) {
+            if (!seen.emplace(DecisionId(u, d), d).second) {
+              fprintf(stderr, "%d,%d,%d\n", d.x, d.y, d.r);
+              assert(false);
+              ok = false;
+              break;
+            }
+          }
+        }
+        if (!ok)
+          break;
+      }
+
+      if (ok) {
+        //fprintf(stderr, "go %d d=%d,%d,%d\n", n, d.x, d.y, d.r);
+        if (MakeNiceCommandStrFrom(u, d, goal, &seen, &out))
+          return out;
+      }
+    }
+#endif
+
+    map<DecisionId, Decision> seen;
+    Decision d = u.origin();
+    string out;
+    bool ok = MakeNiceCommandStrFrom(u, d, goal, &seen, &out);
+    assert(ok);
+    return out;
+  }
 
  private:
   int H, W;
@@ -822,7 +1003,7 @@ class Game {
 
   unique_ptr<Board> board_;
   int turn_;
-  vector<Command> commands_;
+  string commands_;
   int score_;
 };
 
@@ -859,7 +1040,7 @@ int main(int argc, char* argv[]) {
     game.Play();
     //bool ok = solutions.emplace(seed, MakeCommandStr(game.commands())).second;
     //assert(ok);
-    solutions.push_back(make_pair(seed, MakeCommandStr(game.commands())));
+    solutions.push_back(make_pair(seed, game.commands()));
   }
 
   printf("[");
