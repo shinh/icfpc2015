@@ -108,6 +108,7 @@ struct Pos {
   }
 
   static void Test() {
+#if 0
 #define CHECK_EQ(a, b) CheckEq(a, b, __FILE__, __LINE__)
     CHECK_EQ(Pos(0, 0).Rotate(0, 0, Pos(0, 0)), Pos(0, 0));
 
@@ -135,7 +136,12 @@ struct Pos {
     CHECK_EQ(Pos(0, 1).Rotate(0, 0, Pos(0, 0)), Pos(0, 1));
 
     CHECK_EQ(Pos(0, 1).Rotate(0, 0, Pos(1, 1)), Pos(0, 1));
+
+    CHECK_EQ(Pos(0, 0).Rotate(3, 1, Pos(0, 0)), Pos(0, 0));
+    CHECK_EQ(Pos(0, 1).Rotate(3, 1, Pos(0, 0)), Pos(0, 1));
+    CHECK_EQ(Pos(0, 2).Rotate(3, 1, Pos(0, 0)), Pos(-1, 1));
 #undef CHECK_EQ
+#endif
   }
 
   bool operator==(Pos p) const {
@@ -162,7 +168,74 @@ struct Pos {
     return Pos(x + y % 2, y + 1);
   }
 
-  Pos Rotate(int cy, int r, Pos p) {
+  Pos MoveNW() const {
+    return Pos(x - 1 + y % 2, y - 1);
+  }
+
+  Pos MoveNE() const {
+    return Pos(x + y % 2, y - 1);
+  }
+
+  Pos Rotate(/*int cy, */int r, Pos p) {
+    // E, SE, SW, W, NW, NE
+    int moves[6] = {};
+    Pos m = Pos(p.x, p.y);
+    if (y >= p.y) {
+      int se_cnt = 0;
+      while (y != m.y) {
+        m = m.MoveSE();
+        se_cnt++;
+      }
+      moves[1] = se_cnt;
+    } else {
+      int ne_cnt = 0;
+      while (y != m.y) {
+        m = m.MoveNE();
+        ne_cnt++;
+      }
+      moves[5] = ne_cnt;
+    }
+
+    if (x >= m.x) {
+      moves[0] = x - m.x;
+    } else {
+      moves[3] = m.x - x;
+    }
+
+    int rmoves[6];
+    for (int i = 0; i < 6; i++) {
+      int v = moves[i];
+      rmoves[(i + r) % 6] = v;
+    }
+
+    m = Pos(p.x, p.y);
+    m.x += rmoves[0];
+    m.x -= rmoves[3];
+    for (int i = 0; i < rmoves[1]; i++)
+      m = m.MoveSE();
+    for (int i = 0; i < rmoves[2]; i++)
+      m = m.MoveSW();
+    for (int i = 0; i < rmoves[4]; i++)
+      m = m.MoveNW();
+    for (int i = 0; i < rmoves[5]; i++)
+      m = m.MoveNE();
+
+    Pos ret = Pos(m.x, m.y);
+    //if (r == 0 && *this != ret || true) {
+    if (r == 0 && *this != ret) {
+      fprintf(stderr, "Rotate (%d,%d) pivot=(%d,%d) rot=%d => (%d,%d)\n",
+              x, y, p.x, p.y, r, ret.x, ret.y);
+      fprintf(stderr, "moves={%d,%d,%d,%d,%d,%d} rmoves={%d,%d,%d,%d,%d,%d}\n",
+              moves[0], moves[1], moves[2], moves[3], moves[4], moves[5],
+              rmoves[0], rmoves[1], rmoves[2],
+              rmoves[3], rmoves[4], rmoves[5]);
+    }
+
+    return ret;
+
+#if 0
+    fprintf(stderr, "Rotate (%d,%d) pivot=(%d,%d) rot=%d y=%d\n",
+            x, y, p.x, p.y, r, cy);
     double dy = sqrt(1-0.5*0.5);
     double pgx = p.GetGeomX(cy);
     double gx = GetGeomX(cy) - pgx;
@@ -172,8 +245,12 @@ struct Pos {
     double ny = gx * sin(gr) + gy * cos(gr);
     int iy = round(ny / dy) + p.y;
     int ix = round(nx + pgx - ((iy + cy) & 1) * 0.5);
-    //fprintf(stderr, "(%f,%f) => (%f,%f) %d,%d\n", gx, gy, nx, ny, ix, iy);
+    //int ix = ceil(nx + pgx);
+    //int ix = round(nx + pgx - ((iy + cy) % 2) * 0.5);
+    //int ix = round(nx + pgx - (iy % 2) * 0.5);
+    fprintf(stderr, "(%f,%f) => (%f,%f) %d,%d\n", gx, gy, nx, ny, ix, iy);
     return Pos(ix, iy);
+#endif
 
 #if 0
     int dx = x - p.x;
@@ -215,7 +292,85 @@ struct Decision {
     return Pos(x, y);
   }
 
+  static void Test() {
+#define CHECK_EQ(a, b) Pos::CheckEq(a, b, __FILE__, __LINE__)
+
+#if 0
+    for (int y = 0; y < 10; y++) {
+      for (int x = 0; x < 10; x++) {
+        CHECK_EQ(Decision(x, y, 0).Apply(Pos(0, 0), Pos(0, 0)), Pos(x, y));
+      }
+    }
+#endif
+
+    CHECK_EQ(Decision(-1, 1, 0).Apply(Pos(0, 0), Pos(0, 0)), Pos(-1, 1));
+
+#undef CHECK_EQ
+  }
+
   Pos Apply(Pos p, Pos pivot) const {
+#if 0
+#define VERBOSE_APPLY
+
+#ifdef VERBOSE_APPLY
+    fprintf(stderr, "Apply (%d,%d) pivot=(%d,%d) x=%d y=%d rot=%d\n",
+            p.x, p.y, pivot.x, pivot.y, x, y, r);
+#endif
+
+    static const double kDeltaY = sqrt(1-0.5*0.5);
+    double gy = p.y * kDeltaY;
+    double gx = p.GetGeomX(y);
+    double pgy = pivot.y * kDeltaY;
+    double pgx = pivot.GetGeomX(y);
+
+    double dy = gy - pgy;
+    double dx = gx - pgx;
+    double gr = M_PI * 2 * r / 6;
+    double ndx = dx * cos(gr) - dy * sin(gr);
+    double ndy = dx * sin(gr) + dy * cos(gr);
+#ifdef VERBOSE_APPLY
+    fprintf(stderr, "d=(%f,%f) => nd=(%f,%f)\n", dx, dy, ndx, ndy);
+#endif
+
+    double ngx = pgx + ndx;
+    double ngy = pgy + ndy;
+
+    int dxa = int(round(ngy / kDeltaY)) % 2;
+
+    ngy += y * kDeltaY;
+
+    int dxb = int(round(ngy / kDeltaY)) % 2;
+
+    int iy = round(ngy / kDeltaY);
+
+    fprintf(stderr, "dxa=%d dxb=%d\n", dxa, dxb);
+    //int ix = round(ngx + x + (dxb - dxa) * 0.5);
+    int ix = round(ngx + x + (dxa - dxb) * 0.5);
+
+    //ngx += x;
+    //int ix = round(ngx - iy % 2 * 0.5);
+    //int ix = floor(ngx + 0.001);
+
+#ifdef VERBOSE_APPLY
+    fprintf(stderr, "(%f,%f) => (%f,%f)\n", gx, gy, ngx, ngy);
+#endif
+    return Pos(ix, iy);
+
+#else
+
+    int nx = p.x + x;
+    int ny = p.y + y;
+    if (p.y % 2)
+      nx += 1 - (ny & 1);
+
+    int npx = pivot.x + x;
+    int npy = pivot.y + y;
+    if (pivot.y % 2)
+      npx += 1 - (npy & 1);
+
+    return Pos(nx, ny).Rotate(r, Pos(npx, npy));
+
+#if 0
     Pos np = p.Rotate(y, r, pivot);
     int nx = x + np.x;
     int ny = y + np.y;
@@ -225,6 +380,9 @@ struct Decision {
     //int dx = np.y % 2 - ny % 2;
     //fprintf(stderr, "np=(%d,%d) %d %d %d\n", np.x, np.y, nx, ny, dx);
     return Pos(nx + dx, ny);
+#endif
+
+#endif
   }
 
   bool operator==(Decision d) const {
@@ -427,8 +585,8 @@ class Board {
     NEXT(Decision(d.x + 1, d.y, d.r), MOVE_E);
     NEXT(Decision(d.pos().MoveSW(), d.r), MOVE_SW);
     NEXT(Decision(d.pos().MoveSE(), d.r), MOVE_SE);
-    //NEXT(Decision(d.x, d.y, (d.r + 1) % 6), ROT_C);
-    //NEXT(Decision(d.x, d.y, (d.r + 5) % 6), ROT_CC);
+    NEXT(Decision(d.x, d.y, (d.r + 1) % 6), ROT_C);
+    NEXT(Decision(d.x, d.y, (d.r + 5) % 6), ROT_CC);
 #undef NEXT
   }
 
@@ -469,14 +627,29 @@ class Game {
     turn_ = 0;
     score_ = 0;
 
+    {
+      const Unit& u = units_[6];
+      fprintf(stderr, "===\n");
+      board_->Show(u, Decision(0, 9, 0));
+      fprintf(stderr, "===\n");
+      board_->Show(u, Decision(0, 9, 1));
+      fprintf(stderr, "===\n");
+      board_->Show(u, Decision(-1, 9, 0));
+      fprintf(stderr, "===\n");
+      board_->Show(u, Decision(-1, 9, 1));
+      fprintf(stderr, "===\n");
+    }
+
 #if 0
     {
-      const Unit& u = units_[3];
+      const Unit& u = units_[12];
       board_->Show(u, u.origin());
       for (int y = 0; y < H; y++) {
         for (int x = 0; x < W; x++) {
-          fprintf(stderr, "%d,%d\n", x, y);
-          board_->Show(u, Decision(x, y, 0));
+          for (int r = 0; r < 6; r++) {
+            fprintf(stderr, "%d,%d,%d\n", x, y, r);
+            board_->Show(u, Decision(x, y, r));
+          }
         }
       }
 #if 0
@@ -577,8 +750,9 @@ class Game {
 };
 
 int main(int argc, char* argv[]) {
-  Pos::Test();
   Lcg::Test();
+  Pos::Test();
+  Decision::Test();
 
   const char* filename = "problems/problem_0.json";
   for (int i = 1; i < argc; i++) {

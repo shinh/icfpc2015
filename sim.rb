@@ -220,8 +220,8 @@ source_seeds.each_with_index do |seed, game_index|
   frame = -1
   turn = 0
 
-  #cmds = decode_cmd(solution)
-  cmds = decode_cmd('pppppppppadddddd')
+  cmds = decode_cmd(solution)
+  #cmds = decode_cmd('ppppppppapppplbbbbbbbappppppppppppabbbbbbbbapppppppabbbbbbbbappppppppabbbbbbbbdppppppppdbbbbbbbdpppppppppppplbbbbbbbdpppppppdbbbbbbdpppppppppplbbbbbbapppppplbbbbbbappppppplbbbbbbbappppppabbbbbbbappppppppkbbbbbbbbkppppkbbbkpppppppdppppkpppabbbbbbapppppplbbbbbbapppppppppabbbbbbdppppppdbbbbbdpppppppplbbbbbappppplbbbbbapppppplbbbbbbappppppabbbbbbbappppppdpdppplbbbbapppplbbbbdppppppbbbbappplbbbappppadappdbbbbdpppppdppbbbbbappppabbbbbappppabbbbbapppplbbbbapppppappbbbbbappppabbbbbapppplbbbdpppdpdaddpp')
 
   # game loop
   while true
