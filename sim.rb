@@ -79,7 +79,7 @@ class Unit
   end
 
   def rotated_pos(x, y, dir)
-    puts "rotated_pos (#{x}, #{y}), (#{@pivot[0]}, #{@pivot[1]})"
+    #puts "rotated_pos (#{x}, #{y}), (#{@pivot[0]}, #{@pivot[1]})"
     xdist = Math.sqrt(3)/2
     ydist = 3.0/4.0
     geox = xdist * x + (1 + (y % 2)) * xdist / 2
@@ -101,10 +101,10 @@ class Unit
     geonx = dx * Math.cos(theta) - dy * Math.sin(theta) + geopx
     geony = dx * Math.sin(theta) + dy * Math.cos(theta) + geopy
 
-    puts "rotated_pos geo (#{geox}, #{geoy}), (#{geopx}, #{geopy}), (#{geonx}, #{geony})"
+    #puts "rotated_pos geo (#{geox}, #{geoy}), (#{geopx}, #{geopy}), (#{geonx}, #{geony})"
     ny = ((geony - 0.5) / ydist).round
     nx = ((geonx - (1 + (ny % 2)) * xdist / 2) / xdist).round
-    puts "rotated_pos after (#{nx}, #{ny})"
+    #puts "rotated_pos after (#{nx}, #{ny})"
     [nx, ny]
   end
 
@@ -176,6 +176,13 @@ class Unit
     return false
   end
 
+  def can_appear(board)
+    @members.each do |x, y|
+      return false if board[y][x]
+    end
+    return true
+  end
+
 end
 
 lcg = Lcg.new(17)
@@ -220,11 +227,12 @@ source_seeds.each_with_index do |seed, game_index|
   frame = -1
   turn = 0
 
-  #cmds = decode_cmd(solution)
-  cmds = decode_cmd('pppppppppadddddd')
+  cmds = decode_cmd(solution)
+  #cmds = decode_cmd('pppppppppadddddd')
+  #cmds = decode_cmd('ppppppppapppplbbbbbbbappppppppppppabbbbbbbbapppppppabbbbbbbbappppppppabbbbbbbbbappppppppdbbbbbbbdppppppppdppppplbbbbbbbappppppplbbbbbbbapppppppdbbbbbbbdpppppppdppppplbbbbbbbappppppplbbbbbbbappppppabbbbbbbappppppabbbbbbbapppppppabbbbbbbdppppppppppppppplbbbbbbapppppppppplbbbbbbapppppplbbbbbbappppppdbbbbbbdppppppdpppplbbbbbbkpppppkbbbbbkpppppkpkppbbbbapppplbbbbappppplbbbbbappppplbbbbbapppppppbbbbapppaplbbbbbappppplbbbbbapppppappdpdppbbbbbappppabbbbbapppppppbbbbdpppdpdpp')
 
   # game loop
-  while true
+  while frame < cmds.size - 1
     frame += 1
     if !cur_unit
       turn += 1
@@ -244,15 +252,17 @@ source_seeds.each_with_index do |seed, game_index|
       base_x = (width - size_x) / 2
       cur_unit = Unit.new(unit, base_x)
 
-      # TODO: Check if it can appear.
+      if !cur_unit.can_appear(board) then
+        puts 'Unit cannot appear to this board. Finishing game.'
+        break
+      end
     end
 
     cmd = cmds[frame]
     if cmd
       cmd, arg = *cmd
     else
-      cmd = :move
-      arg = :SW
+      raise "invalid cmds"
     end
 
     puts "game ##{game_index} turn #{turn} @#{frame} #{cmd} #{arg}"
@@ -272,16 +282,6 @@ source_seeds.each_with_index do |seed, game_index|
         print '|'
       end
       puts ""
-    end
-
-    cmd = cmds[frame]
-    puts "Command char #{solution[frame]}"
-    if cmd
-      cmd, arg = *cmd
-    else
-      raise "Invalid cmds"
-      #cmd = :move
-      #arg = :SW
     end
 
     case cmd
