@@ -273,7 +273,7 @@ source_seeds.each_with_index do |seed, game_index|
       print '|'
       row.each_with_index do |col, x|
         if cur_unit && cur_unit.in?(x, y)
-          print 'x'
+          print 'o'
         elsif col
           print 'X'
         else
