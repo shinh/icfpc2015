@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <map>
 #include <memory>
+#include <set>
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
@@ -569,12 +570,18 @@ class Board {
     return score;
   }
 
+#if 0
   int GetPosId(Pos p) {
     // +2 for boundaries.
-    return p.y * (W + 2) + p.x;
+    return p.y * (1000) + p.x;
   }
+#else
+  pair<int, int> GetPosId(Pos p) {
+    return make_pair(p.x, p.y);
+  }
+#endif
 
-  void GetDecisionId(const Unit& u, Decision d, IntSet* id) {
+  void GetDecisionId(const Unit& u, Decision d, set<pair<int, int>>* id) {
     id->insert(GetPosId(u.pivot()));
     for (Pos p : u.members()) {
       Pos np = d.Apply(p, u.pivot());
@@ -586,7 +593,7 @@ class Board {
                                            Decision d,
                                            Decision pd,
                                            vector<Command>* commands,
-                                           unordered_set<IntSet>* seen,
+                                           set<set<pair<int, int>>>* seen,
                                            DecisionMap* out) {
     //fprintf(stderr, "%d %d %d %zu\n", d.x, d.y, d.r, seen->size());
     if (!CanPut(u, d)) {
@@ -595,7 +602,7 @@ class Board {
       return;
     }
 
-    IntSet decision_id;
+    set<pair<int, int>> decision_id;
     GetDecisionId(u, d, &decision_id);
     if (!seen->insert(decision_id).second)
       return;
@@ -617,7 +624,7 @@ class Board {
   void GetPossibleDecisionsWithComands(const Unit& u, DecisionMap* out) {
      Decision d = u.origin();
      vector<Command> commands;
-     unordered_set<IntSet> seen;
+     set<set<pair<int, int>>> seen;
      GetPossibleDecisionsWithComandsImpl(u, d, d, &commands, &seen, out);
   }
 
