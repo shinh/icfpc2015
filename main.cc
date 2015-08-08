@@ -489,6 +489,8 @@ class Game {
 
     while (true) {
       turn_++;
+      if (turn_ > source_length_)
+        break;
 
       int uid = lcg_.GetNext() % units_.size();
       const Unit& u = units_[uid];
