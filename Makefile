@@ -13,6 +13,6 @@ $(OBJS): %.o: %.cc
 	$(CXX) -c $(CXXFLAGS) $< -o $@
 
 play_icfp2015: $(OBJS)
-	$(CXX) $(CXXFLAGS) $^ -o $@
+	$(CXX) $(CXXFLAGS) -lpthread $^ -o $@
 
 -include *.d

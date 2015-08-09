@@ -18,7 +18,7 @@ ans = []
   log = File.read(logfile)
   score = 0
   results = []
-  log.scan(/^turn=.* score=(\d+)/) do
+  log.scan(/^seed=.* score=(\d+)/) do
     results << $&
     score += $1.to_i
   end

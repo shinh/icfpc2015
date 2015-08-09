@@ -13,11 +13,14 @@ using namespace std;
 
 class Lcg;
 class Problem;
+class SolverResult;
+typedef void (*report_fn_t)(const string&, int, SolverResult*);
 
 class SolverBase {
  public:
   void Init(const Problem& problem, int seed, int game_index,
-            const vector<string>& phrases);
+            const vector<string>& phrases,
+            SolverResult* sr, report_fn_t report_fn);
 
   virtual string Play() = 0;
 
@@ -42,6 +45,9 @@ class SolverBase {
   vector<Pos> filled_;
   vector<Unit> units_;
   vector<string> phrases_;
+
+  SolverResult* sr_;
+  report_fn_t report_fn_;
 
   unique_ptr<Board> board_;
   set<string> use_once_phrases_;

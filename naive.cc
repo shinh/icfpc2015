@@ -81,6 +81,9 @@ class NaiveSolver : public SolverBase {
     fprintf(stderr, "turn=%d/%d score=%d (%d+%d)\n",
             turn_, source_length_,
             score_ + phrase_score, score_, phrase_score);
+
+    report_fn_(commands_, score_ + phrase_score, sr_);
+
     return commands_;
   }
 

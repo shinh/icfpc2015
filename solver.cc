@@ -3,7 +3,11 @@
 #include "solver.h"
 
 void SolverBase::Init(const Problem& problem, int seed, int game_index,
-                      const vector<string>& phrases) {
+                      const vector<string>& phrases,
+                      SolverResult* sr, report_fn_t report_fn) {
+  sr_ = sr;
+  report_fn_ = report_fn;
+
   lcg_.reset(new Lcg(seed));
   phrases_ = phrases;
   H = problem.height;
