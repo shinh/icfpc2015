@@ -21,6 +21,9 @@
 #include "solver.h"
 
 struct SolverResult {
+  explicit SolverResult(int s)
+    : score(-1), phrase_score(-1), seed(s) {
+  }
   unique_ptr<SolverBase> solver;
   string commands;
   int score;
@@ -105,17 +108,26 @@ int main(int argc, char* argv[]) {
   Problem problem(filename);
   //vector<pair<int, string>> solutions;
   int game_index = 0;
+
   for (int seed : problem.source_seeds) {
-    SolverResult* sr = new SolverResult;
+    SolverResult* sr = new SolverResult(seed);
     SolverBase* solver = MakeNaiveSolver();
     solver->Init(problem, seed, game_index++, phrases, sr, ReportResult);
     sr->solver.reset(solver);
-    sr->score = -1;
-    sr->phrase_score = -1;
-    sr->seed = seed;
     srs.push_back(sr);
     g_tasks.push(sr);
   }
+
+#if 0
+  for (int seed : problem.source_seeds) {
+    SolverResult* sr = new SolverResult(seed);
+    SolverBase* solver = MakeSearchSolver(2);
+    solver->Init(problem, seed, game_index++, phrases, sr, ReportResult);
+    sr->solver.reset(solver);
+    srs.push_back(sr);
+    g_tasks.push(sr);
+  }
+#endif
 
   pipe(g_finish_pipe);
 

@@ -56,5 +56,6 @@ class SolverBase {
 };
 
 SolverBase* MakeNaiveSolver();
+SolverBase* MakeSearchSolver(int depth);
 
 #endif

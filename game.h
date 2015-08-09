@@ -18,6 +18,10 @@ class Lcg {
     v_ = seed;
   }
 
+  explicit Lcg(const Lcg& l) {
+    v_ = l.v_;
+  }
+
   uint32_t GetNext() {
     uint32_t r = (v_ >> 16) & 0x7fff;
     v_ = v_ * 1103515245 + 12345;
@@ -153,6 +157,8 @@ struct DecisionId {
 
 class Board {
  public:
+  Board() {}
+
   Board(int width, int height, const vector<Pos>& filled) {
     W = width;
     H = height;
@@ -217,7 +223,7 @@ class Board {
     return !At(p);
   }
 
-  bool CanPut(const Unit& u, const Decision& d) {
+  bool CanPut(const Unit& u, const Decision& d) const {
     for (Pos p : u.members()) {
       Pos np = d.Apply(p, u.pivot());
       if (!CanFill(np))
@@ -282,7 +288,7 @@ class Board {
                                 Decision d,
                                 Decision pd,
                                 set<Decision>* seen,
-                                set<Decision>* out) {
+                                set<Decision>* out) const {
     //fprintf(stderr, "%d %d %d %zu\n", d.x, d.y, d.r, seen->size());
     if (!CanPut(u, d)) {
       assert(d != pd);
@@ -305,7 +311,7 @@ class Board {
 #undef NEXT
   }
 
-  void GetPossibleDecisions(const Unit& u, set<Decision>* out) {
+  void GetPossibleDecisions(const Unit& u, set<Decision>* out) const {
      Decision d = u.origin();
      set<Decision> seen;
      GetPossibleDecisionsImpl(u, d, d, &seen, out);

@@ -13,7 +13,7 @@ ans = []
   logfile = "logs/#{i}.log"
   STDERR.print "#{prob} "
   start_time = Time.now
-  a = JSON.load(`./play_icfp2015 -f #{prob} 2> #{logfile}`)
+  a = JSON.load(`./play_icfp2015 -f #{prob} -t 120 2> #{logfile}`)
 
   log = File.read(logfile)
   score = 0
