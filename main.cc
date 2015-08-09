@@ -937,7 +937,7 @@ class Game {
         }
       }
 
-#define NEXT(nd, cmd) do {                                              \
+#define NEXT(nd, cmd, prio) do {                                        \
         MakeNiceCommandCtx nctx;                                        \
         nctx.d = nd;                                                    \
         nctx.pd = d;                                                    \
@@ -945,14 +945,14 @@ class Game {
         nctx.cmds = cmds;                                               \
         nctx.cmds.push_back(cmd);                                       \
         int dist = abs(nd.x - goal.x) + abs(nd.y - goal.y) + abs(nd.r - goal.r); \
-        q.emplace(dist + nctx.bap_bonus + (cmd == MOVE_W) * 5 - (cmd == MOVE_E && did_bap ? -500000 : 0), nctx); \
+        q.emplace(dist * 2 + nctx.bap_bonus + prio, nctx);              \
       } while (0)
-      NEXT(Decision(d.x - 1, d.y, d.r), MOVE_W);
-      NEXT(Decision(d.x + 1, d.y, d.r), MOVE_E);
-      NEXT(Decision(d.pos().MoveSW(), d.r), MOVE_SW);
-      NEXT(Decision(d.pos().MoveSE(), d.r), MOVE_SE);
-      NEXT(Decision(d.x, d.y, (d.r + 1) % 6), ROT_C);
-      NEXT(Decision(d.x, d.y, (d.r + 5) % 6), ROT_CC);
+      NEXT(Decision(d.x - 1, d.y, d.r), MOVE_W, 10);
+      NEXT(Decision(d.x + 1, d.y, d.r), MOVE_E, did_bap ? -500000 : -4);
+      NEXT(Decision(d.pos().MoveSW(), d.r), MOVE_SW, 0);
+      NEXT(Decision(d.pos().MoveSE(), d.r), MOVE_SE, 0);
+      NEXT(Decision(d.x, d.y, (d.r + 1) % 6), ROT_C, -2);
+      NEXT(Decision(d.x, d.y, (d.r + 5) % 6), ROT_CC, -2);
 #undef NEXT
     }
 
