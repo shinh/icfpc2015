@@ -170,7 +170,7 @@ class Unit
     put(board)
 
     ls = 0
-    (height-1).downto(0){|i|
+    0.upto(height - 1){|i|
       line_delete = true
       0.upto(width - 1){|j|
         if board[i][j] == false then
@@ -195,7 +195,7 @@ class Unit
     puts "unit move score = #{score}"
     line_bonus = 0
     if ls_old > 1 then
-      score = score + ((ls_old - 1) * points / 10).floor
+      score = score + ((ls_old - 1) * score / 10).floor
     end
     puts "unit whole score = #{score}"
     
@@ -317,12 +317,14 @@ source_seeds.each_with_index do |seed, game_index|
       end
 
       seen_boards = {}
+      puts "game ##{game_index} turn #{turn} @#{frame} New unit pivot(#{cur_unit.pivot[0]},#{cur_unit.pivot[1]})."
+      show_board(board, cur_unit)
     end
 
     nb = board.map{|r|r.dup}
     cur_unit.put(nb)
     if seen_boards[[cur_unit.pivot, nb]]
-      raise "Error: We've seen the same board @#{seen_boards[[cur_unit.pivot, nb]]}!"
+      raise "Error: We've seen the same board @#{seen_boards[[cur_unit.pivot, nb2]]}! @#{ARGV[0]}"
     end
     seen_boards[[cur_unit.pivot, nb]] = frame
 
@@ -333,9 +335,6 @@ source_seeds.each_with_index do |seed, game_index|
       raise "invalid cmds"
     end
 
-    puts "game ##{game_index} turn #{turn} @#{frame} #{cmd} #{arg}"
-    show_board(board, cur_unit)
-
     unit_score = nil
     is_decision = false
     case cmd
@@ -344,6 +343,12 @@ source_seeds.each_with_index do |seed, game_index|
         is_decision = true
         unit_score, ls_old = cur_unit.fix(board, width, height, ls_old)
         total_score = total_score + unit_score
+      else
+        nb2 = board.map{|r|r.dup}
+        cur_unit.put(nb2)
+        if seen_boards[[cur_unit.pivot, nb2]]
+          raise "Error: We've seen the same board @#{seen_boards[[cur_unit.pivot, nb2]]}! @#{ARGV[0]}"
+        end
       end
 
     when :turn
@@ -351,6 +356,12 @@ source_seeds.each_with_index do |seed, game_index|
         is_decision = true
         unit_score, ls_old = cur_unit.fix(board, width, height, ls_old)
         total_score = total_score + unit_score
+      else
+        nb2 = board.map{|r|r.dup}
+        cur_unit.put(nb2)
+        if seen_boards[[cur_unit.pivot, nb2]]
+          raise "Error: We've seen the same board @#{seen_boards[[cur_unit.pivot, nb2]]}! @#{ARGV[0]}"
+        end
       end
     else
       raise "#{cmd}"
@@ -360,6 +371,9 @@ source_seeds.each_with_index do |seed, game_index|
       puts "game ##{game_index} turn #{turn} decision"
       show_board(board, cur_unit)
       cur_unit = nil
+    else
+      puts "game ##{game_index} turn #{turn} @#{frame} #{cmd} #{arg}"
+      show_board(board, cur_unit)
     end
   end
 
