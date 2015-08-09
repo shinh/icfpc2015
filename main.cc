@@ -682,25 +682,6 @@ class Board {
     return score;
   }
 
-#if 0
-  int GetPosId(Pos p) {
-    // +2 for boundaries.
-    return p.y * (1000) + p.x;
-  }
-#else
-  pair<int, int> GetPosId(Pos p) {
-    return make_pair(p.x, p.y);
-  }
-#endif
-
-  void GetDecisionId(const Unit& u, Decision d, set<Pos>* id) {
-    id->insert(u.pivot());
-    for (Pos p : u.members()) {
-      Pos np = d.Apply(p, u.pivot());
-      id->insert(np);
-    }
-  }
-
   void GetPossibleDecisionsImpl(const Unit& u,
                                 Decision d,
                                 Decision pd,
