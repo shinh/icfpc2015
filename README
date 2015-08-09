@@ -1,0 +1,8 @@
+# icfpc2015
+
+Team N6B (shinh + takamitsuki)
+
+Usage:
+
+$ make
+$ ./play_icfp2015 -f problems/problem_0.json -p foobar
