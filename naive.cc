@@ -74,6 +74,7 @@ class NaiveSolver : public SolverBase {
               decision.x, decision.y, decision.r,
               cmds.c_str(),
               decisions.size());
+      report_fn_(commands_, score_, sr_);
     }
 
     int phrase_score = GetPhraseScore(commands_);
@@ -82,7 +83,7 @@ class NaiveSolver : public SolverBase {
             turn_, source_length_,
             score_ + phrase_score, score_, phrase_score);
 
-    report_fn_(commands_, score_ + phrase_score, sr_);
+    report_fn_(commands_, score_, sr_);
 
     return commands_;
   }

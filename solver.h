@@ -16,6 +16,8 @@ class Problem;
 class SolverResult;
 typedef void (*report_fn_t)(const string&, int, SolverResult*);
 
+int GetPhraseScore(const string& commands, const vector<string>& phrases);
+
 class SolverBase {
  public:
   void Init(const Problem& problem, int seed, int game_index,

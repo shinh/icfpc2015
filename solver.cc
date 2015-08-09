@@ -30,10 +30,10 @@ void SolverBase::Init(const Problem& problem, int seed, int game_index,
   use_once_phrases_.insert("ia! ia!");
 }
 
-int SolverBase::GetPhraseScore(const string& commands) const {
+int GetPhraseScore(const string& commands, const vector<string>& phrases) {
   int score = 0;
   string cmd = commands;
-  for (string phrase : phrases_) {
+  for (string phrase : phrases) {
     bool is_first = true;
     size_t index = 0;
     while (index < cmd.size()) {
@@ -50,6 +50,10 @@ int SolverBase::GetPhraseScore(const string& commands) const {
     }
   }
   return score;
+}
+
+int SolverBase::GetPhraseScore(const string& commands) const {
+  return ::GetPhraseScore(commands, phrases_);
 }
 
 struct MakeNiceCommandCtx {

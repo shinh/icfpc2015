@@ -24,6 +24,7 @@ struct SolverResult {
   unique_ptr<SolverBase> solver;
   string commands;
   int score;
+  int phrase_score;
   int seed;
 };
 
@@ -107,6 +108,7 @@ int main(int argc, char* argv[]) {
     solver->Init(problem, seed, game_index++, phrases, sr, ReportResult);
     sr->solver.reset(solver);
     sr->score = -1;
+    sr->phrase_score = -1;
     sr->seed = seed;
     srs.push_back(sr);
     g_tasks.push(sr);
@@ -138,6 +140,9 @@ int main(int argc, char* argv[]) {
   // So all other threads stop writing their results.
   pthread_mutex_lock(&g_mutex);
   for (SolverResult* sr : srs) {
+    sr->phrase_score = GetPhraseScore(sr->commands, phrases);
+    sr->score += sr->phrase_score;
+
     auto p = solutions.emplace(sr->seed, sr);
     if (!p.second) {
       SolverResult* psr = p.first->second;
@@ -155,7 +160,9 @@ int main(int argc, char* argv[]) {
     is_first = false;
     SolverResult* sr = p.second;
 
-    fprintf(stderr, "seed=%d score=%d\n", sr->seed, sr->score);
+    fprintf(stderr, "seed=%d score=%d (%d+%d)\n",
+            sr->seed, sr->score,
+            sr->score - sr->phrase_score, sr->phrase_score);
 
     printf("{\"problemId\":%d,\"seed\":%d,\"solution\":\"%s\"}",
            problem.id, p.first, sr->commands.c_str());
