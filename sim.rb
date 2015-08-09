@@ -308,7 +308,8 @@ source_seeds.each_with_index do |seed, game_index|
       min_x = xs.min
       max_x = xs.max
       size_x = max_x - min_x + 1
-      base_x = (width - size_x) / 2
+      base_x = (width - size_x) / 2 - min_x
+      puts "hoge #{min_x}, #{max_x}, #{size_x}, #{base_x}"
       cur_unit = Unit.new(unit, base_x)
 
       if !cur_unit.can_appear(board) then

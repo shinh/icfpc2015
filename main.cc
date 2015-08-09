@@ -448,7 +448,7 @@ class Unit {
       min_x = min(min_x, p.x);
       max_x = max(max_x, p.x);
     }
-    base_x_ = (width - (max_x - min_x + 1)) / 2;
+    base_x_ = (width - (max_x - min_x + 1)) / 2 - min_x; // min_x is not always 0, therefore have to minus min_x.
   }
 
   const vector<Pos>& members() const { return members_; }
