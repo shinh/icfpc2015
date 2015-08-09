@@ -73,13 +73,13 @@ string MakeCommandStr(const vector<Command>& cmds) {
   for (Command c : cmds) {
     switch (c) {
       case MOVE_W:
-        r += 'p';
+        r += '!';
         break;
       case MOVE_E:
-        r += 'b';
+        r += 'e';
         break;
       case MOVE_SW:
-        r += 'a';
+        r += 'i';
         break;
       case MOVE_SE:
         r += 'l';
@@ -195,23 +195,33 @@ struct Pos {
     return Pos(x + y % 2, y - 1);
   }
 
+  Pos StepSW(int n) const {
+    return Pos(x - n / 2 + (y % 2 - 1) * (n % 2), y + n);
+  }
+
+  Pos StepSE(int n) const {
+    return Pos(x + n / 2 + (y % 2) * (n % 2), y + n);
+  }
+
+  Pos StepNW(int n) const {
+    return Pos(x - n / 2 + (y % 2 - 1) * (n % 2), y - n);
+  }
+
+  Pos StepNE(int n) const {
+    return Pos(x + n / 2 + (y % 2) * (n % 2), y - n);
+  }
+
   Pos Rotate(/*int cy, */int r, Pos p) {
     // E, SE, SW, W, NW, NE
     int moves[6] = {};
     Pos m = Pos(p.x, p.y);
     if (y >= p.y) {
-      int se_cnt = 0;
-      while (y != m.y) {
-        m = m.MoveSE();
-        se_cnt++;
-      }
+      int se_cnt = y - p.y;
+      m = m.StepSE(se_cnt);
       moves[1] = se_cnt;
     } else {
-      int ne_cnt = 0;
-      while (y != m.y) {
-        m = m.MoveNE();
-        ne_cnt++;
-      }
+      int ne_cnt = p.y - y;
+      m = m.StepNE(ne_cnt);
       moves[5] = ne_cnt;
     }
 
@@ -230,16 +240,13 @@ struct Pos {
     m = Pos(p.x, p.y);
     m.x += rmoves[0];
     m.x -= rmoves[3];
-    for (int i = 0; i < rmoves[1]; i++)
-      m = m.MoveSE();
-    for (int i = 0; i < rmoves[2]; i++)
-      m = m.MoveSW();
-    for (int i = 0; i < rmoves[4]; i++)
-      m = m.MoveNW();
-    for (int i = 0; i < rmoves[5]; i++)
-      m = m.MoveNE();
+    m = m.StepSE(rmoves[1]);
+    m = m.StepSW(rmoves[2]);
+    m = m.StepNW(rmoves[4]);
+    m = m.StepNE(rmoves[5]);
 
     Pos ret = Pos(m.x, m.y);
+#if 0
     //if (r == 0 && *this != ret || true) {
     if (r == 0 && *this != ret) {
       fprintf(stderr, "Rotate (%d,%d) pivot=(%d,%d) rot=%d => (%d,%d)\n",
@@ -249,6 +256,7 @@ struct Pos {
               rmoves[0], rmoves[1], rmoves[2],
               rmoves[3], rmoves[4], rmoves[5]);
     }
+#endif
 
     return ret;
 
@@ -366,10 +374,6 @@ struct Decision {
     //int ix = round(ngx + x + (dxb - dxa) * 0.5);
     int ix = round(ngx + x + (dxa - dxb) * 0.5);
 
-    //ngx += x;
-    //int ix = round(ngx - iy % 2 * 0.5);
-    //int ix = floor(ngx + 0.001);
-
 #ifdef VERBOSE_APPLY
     fprintf(stderr, "(%f,%f) => (%f,%f)\n", gx, gy, ngx, ngy);
 #endif
@@ -457,9 +461,6 @@ class Unit {
   Pos pivot_;
   int base_x_;
 };
-
-//typedef unordered_map<Decision, vector<Command>> DecisionMap;
-typedef map<Decision, vector<Command>> DecisionMap;
 
 struct DecisionId {
   DecisionId(const Unit& u, Decision d) {
@@ -632,41 +633,37 @@ class Board {
     }
   }
 
-  void GetPossibleDecisionsWithComandsImpl(const Unit& u,
-                                           Decision d,
-                                           Decision pd,
-                                           vector<Command>* commands,
-                                           set<Decision>* seen,
-                                           DecisionMap* out) {
+  void GetPossibleDecisionsImpl(const Unit& u,
+                                Decision d,
+                                Decision pd,
+                                set<Decision>* seen,
+                                set<Decision>* out) {
     //fprintf(stderr, "%d %d %d %zu\n", d.x, d.y, d.r, seen->size());
     if (!CanPut(u, d)) {
       assert(d != pd);
-      out->emplace(pd, *commands);
+      out->emplace(pd);
       return;
     }
 
     if (!seen->insert(d).second)
       return;
 
-#define NEXT(nd, cmd) do {                                              \
-      commands->push_back(cmd);                                         \
-      GetPossibleDecisionsWithComandsImpl(u, nd, d, commands, seen, out); \
-      commands->pop_back();                                             \
+#define NEXT(nd) do {                                              \
+      GetPossibleDecisionsImpl(u, nd, d, seen, out);               \
     } while (0)
-    NEXT(Decision(d.x - 1, d.y, d.r), MOVE_W);
-    NEXT(Decision(d.x + 1, d.y, d.r), MOVE_E);
-    NEXT(Decision(d.pos().MoveSW(), d.r), MOVE_SW);
-    NEXT(Decision(d.pos().MoveSE(), d.r), MOVE_SE);
-    NEXT(Decision(d.x, d.y, (d.r + 1) % 6), ROT_C);
-    NEXT(Decision(d.x, d.y, (d.r + 5) % 6), ROT_CC);
+    NEXT(Decision(d.x - 1, d.y, d.r));
+    NEXT(Decision(d.x + 1, d.y, d.r));
+    NEXT(Decision(d.pos().MoveSW(), d.r));
+    NEXT(Decision(d.pos().MoveSE(), d.r));
+    NEXT(Decision(d.x, d.y, (d.r + 1) % 6));
+    NEXT(Decision(d.x, d.y, (d.r + 5) % 6));
 #undef NEXT
   }
 
-  void GetPossibleDecisionsWithComands(const Unit& u, DecisionMap* out) {
+  void GetPossibleDecisions(const Unit& u, set<Decision>* out) {
      Decision d = u.origin();
-     vector<Command> commands;
      set<Decision> seen;
-     GetPossibleDecisionsWithComandsImpl(u, d, d, &commands, &seen, out);
+     GetPossibleDecisionsImpl(u, d, d, &seen, out);
   }
 
  private:
@@ -717,26 +714,6 @@ class Game {
     }
 #endif
 
-#if 0
-    {
-      const Unit& u = units_[12];
-      board_->Show(u, u.origin());
-      for (int y = 0; y < H; y++) {
-        for (int x = 0; x < W; x++) {
-          for (int r = 0; r < 6; r++) {
-            fprintf(stderr, "%d,%d,%d\n", x, y, r);
-            board_->Show(u, Decision(x, y, r));
-          }
-        }
-      }
-#if 0
-      board_->Show(u, u.origin());
-      board_->Show(u, Decision(u.base_x() + 4, 0, 0));
-      fprintf(stderr, "%d\n", board_->CanPut(u, Decision(4, 0, 0)));
-#endif
-    }
-#endif
-
     while (true) {
       turn_++;
       if (turn_ > source_length_)
@@ -750,8 +727,8 @@ class Game {
         break;
       }
 
-      DecisionMap decisions;
-      board_->GetPossibleDecisionsWithComands(u, &decisions);
+      set<Decision> decisions;
+      board_->GetPossibleDecisions(u, &decisions);
       assert(!decisions.empty());
 
 #if 0
@@ -766,9 +743,7 @@ class Game {
       }
 #endif
 
-      auto d = ChooseBest(u, decisions);
-
-      Decision decision = d.first;
+      Decision decision = ChooseBest(u, decisions);
 
       string cmds = MakeNiceCommandStr(u, decision);
       commands_ += cmds;
@@ -821,14 +796,11 @@ class Game {
     return score;
   }
 
-  pair<Decision, vector<Command>> ChooseBest(const Unit& u,
-                                             DecisionMap decisions) {
+  Decision ChooseBest(const Unit& u, const set<Decision>& decisions) {
     double best_score = -1e99;
     Decision best_decision;
 
-    for (const auto& p : decisions) {
-      Decision d = p.first;
-
+    for (Decision d : decisions) {
       Board nb = *board_;
       nb.Put(u, d);
       double score = nb.Eval();
@@ -838,9 +810,7 @@ class Game {
       }
     }
 
-    auto found = decisions.find(best_decision);
-    assert(found != decisions.end());
-    return *found;
+    return best_decision;
   }
 
   const string& commands() const { return commands_; }
@@ -891,13 +861,6 @@ class Game {
 #endif
 
       if (!seen->emplace(DecisionId(u, d), d).second) {
-#if 0
-        auto found = seen->find(DecisionId(u, d));
-        DecisionId sid = found->first;
-        Decision sd = found->second;
-        fprintf(stderr, "seen... %d,%d %d,%d,%d\n",
-                PF(sid.p), sd.x, sd.y, sd.r);
-#endif
         continue;
       }
 
@@ -937,7 +900,7 @@ class Game {
         }
       }
 
-#define NEXT(nd, cmd) do {                                              \
+#define NEXT(nd, cmd, prio) do {                                        \
         MakeNiceCommandCtx nctx;                                        \
         nctx.d = nd;                                                    \
         nctx.pd = d;                                                    \
@@ -945,14 +908,14 @@ class Game {
         nctx.cmds = cmds;                                               \
         nctx.cmds.push_back(cmd);                                       \
         int dist = abs(nd.x - goal.x) + abs(nd.y - goal.y) + abs(nd.r - goal.r); \
-        q.emplace(dist + nctx.bap_bonus + (cmd == MOVE_W) * 5 - (cmd == MOVE_E && did_bap ? -500000 : 0), nctx); \
+        q.emplace(dist * 2 + nctx.bap_bonus + prio, nctx);              \
       } while (0)
-      NEXT(Decision(d.x - 1, d.y, d.r), MOVE_W);
-      NEXT(Decision(d.x + 1, d.y, d.r), MOVE_E);
-      NEXT(Decision(d.pos().MoveSW(), d.r), MOVE_SW);
-      NEXT(Decision(d.pos().MoveSE(), d.r), MOVE_SE);
-      NEXT(Decision(d.x, d.y, (d.r + 1) % 6), ROT_C);
-      NEXT(Decision(d.x, d.y, (d.r + 5) % 6), ROT_CC);
+      NEXT(Decision(d.x - 1, d.y, d.r), MOVE_W, 10);
+      NEXT(Decision(d.x + 1, d.y, d.r), MOVE_E, did_bap ? -500000 : -4);
+      NEXT(Decision(d.pos().MoveSW(), d.r), MOVE_SW, 0);
+      NEXT(Decision(d.pos().MoveSE(), d.r), MOVE_SE, 0);
+      NEXT(Decision(d.x, d.y, (d.r + 1) % 6), ROT_C, -2);
+      NEXT(Decision(d.x, d.y, (d.r + 5) % 6), ROT_CC, -2);
 #undef NEXT
     }
 
@@ -969,7 +932,55 @@ class Game {
       seen.emplace(DecisionId(u, d), d);
 
       for (int i = 0; i < n; i++) {
-        out += "bap";
+        out += "r'lyeh";
+        for (int j = 0; j < 6; j++) {
+          if (j == 0) {
+            d = Decision(d.x, d.y, (d.r + 1) % 6);
+          } else if (j == 1) {
+            d = Decision(d.x - 1, d.y, d.r);
+          } else if (j == 2) {
+            d = Decision(d.pos().MoveSE(), d.r);
+          } else if (j == 3) {
+            d = Decision(d.x + 1, d.y, d.r);
+          } else if (j == 4) {
+            d = Decision(d.x + 1, d.y, d.r);
+          } else if (j == 5) {
+            d = Decision(d.pos().MoveSW(), d.r);
+          }
+
+          if (!board_->CanPut(u, d)) {
+            ok = false;
+            break;
+          }
+          if (i < n - 1 || j < 5) {
+            if (!seen.emplace(DecisionId(u, d), d).second) {
+              fprintf(stderr, "%d,%d,%d\n", d.x, d.y, d.r);
+              //assert(false);
+              ok = false;
+              break;
+            }
+          }
+        }
+        if (!ok)
+          break;
+      }
+
+      if (ok) {
+        //fprintf(stderr, "go %d d=%d,%d,%d\n", n, d.x, d.y, d.r);
+        if (MakeNiceCommandStrFrom(u, d, goal, &seen, &out))
+          return out;
+      }
+    }
+
+    for (int n = H - 1; n > 0; n--) {
+      map<DecisionId, Decision> seen;
+      string out;
+      bool ok = true;
+      Decision d = u.origin();
+      seen.emplace(DecisionId(u, d), d);
+
+      for (int i = 0; i < n; i++) {
+        out += "ei!";
         for (int j = 0; j < (i < n - 1 ? 4 : 3); j++) {
           if (j == 0) {
             d = Decision(d.x + 1, d.y, d.r);
@@ -1065,7 +1076,7 @@ int main(int argc, char* argv[]) {
   if (phrases.empty()) {
     // Known phrases.
     phrases.push_back("ei!");
-    phrases.push_back("bap");
+    phrases.push_back("r'lyeh");
   }
 
   Problem problem(filename);
