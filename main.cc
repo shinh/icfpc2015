@@ -195,23 +195,33 @@ struct Pos {
     return Pos(x + y % 2, y - 1);
   }
 
+  Pos StepSW(int n) const {
+    return Pos(x - n / 2 + (y % 2 - 1) * (n % 2), y + n);
+  }
+
+  Pos StepSE(int n) const {
+    return Pos(x + n / 2 + (y % 2) * (n % 2), y + n);
+  }
+
+  Pos StepNW(int n) const {
+    return Pos(x - n / 2 + (y % 2 - 1) * (n % 2), y - n);
+  }
+
+  Pos StepNE(int n) const {
+    return Pos(x + n / 2 + (y % 2) * (n % 2), y - n);
+  }
+
   Pos Rotate(/*int cy, */int r, Pos p) {
     // E, SE, SW, W, NW, NE
     int moves[6] = {};
     Pos m = Pos(p.x, p.y);
     if (y >= p.y) {
-      int se_cnt = 0;
-      while (y != m.y) {
-        m = m.MoveSE();
-        se_cnt++;
-      }
+      int se_cnt = y - p.y;
+      m = m.StepSE(se_cnt);
       moves[1] = se_cnt;
     } else {
-      int ne_cnt = 0;
-      while (y != m.y) {
-        m = m.MoveNE();
-        ne_cnt++;
-      }
+      int ne_cnt = p.y - y;
+      m = m.StepNE(ne_cnt);
       moves[5] = ne_cnt;
     }
 
@@ -230,16 +240,13 @@ struct Pos {
     m = Pos(p.x, p.y);
     m.x += rmoves[0];
     m.x -= rmoves[3];
-    for (int i = 0; i < rmoves[1]; i++)
-      m = m.MoveSE();
-    for (int i = 0; i < rmoves[2]; i++)
-      m = m.MoveSW();
-    for (int i = 0; i < rmoves[4]; i++)
-      m = m.MoveNW();
-    for (int i = 0; i < rmoves[5]; i++)
-      m = m.MoveNE();
+    m = m.StepSE(rmoves[1]);
+    m = m.StepSW(rmoves[2]);
+    m = m.StepNW(rmoves[4]);
+    m = m.StepNE(rmoves[5]);
 
     Pos ret = Pos(m.x, m.y);
+#if 0
     //if (r == 0 && *this != ret || true) {
     if (r == 0 && *this != ret) {
       fprintf(stderr, "Rotate (%d,%d) pivot=(%d,%d) rot=%d => (%d,%d)\n",
@@ -249,6 +256,7 @@ struct Pos {
               rmoves[0], rmoves[1], rmoves[2],
               rmoves[3], rmoves[4], rmoves[5]);
     }
+#endif
 
     return ret;
 
