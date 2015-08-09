@@ -760,6 +760,9 @@ class Game {
     for (const auto& p : problem.filled) {
       filled_.push_back(Pos(p));
     }
+
+    use_once_phrases_.insert("yuggoth");
+    use_once_phrases_.insert("ia! ia!");
   }
 
   void Play() {
@@ -1037,6 +1040,16 @@ class Game {
   string MakeNiceCommandStr(const Unit& u, Decision goal) {
 #if 1
     string out;
+
+    for (set<string>::iterator iter = use_once_phrases_.begin();
+         iter != use_once_phrases_.end();
+         ++iter) {
+      if (MakeNiceCommandAfterPhrase(*iter, u, goal, &out)) {
+        use_once_phrases_.erase(iter);
+        return out;
+      }
+    }
+
     if (MakeNiceCommandAfterPhrase("r'lyeh", u, goal, &out)) {
       return out;
     }
@@ -1121,6 +1134,7 @@ class Game {
   int turn_;
   string commands_;
   int score_;
+  set<string> use_once_phrases_;
 };
 
 int main(int argc, char* argv[]) {
