@@ -26,8 +26,11 @@ void SolverBase::Init(const Problem& problem, int seed, int game_index,
     filled_.push_back(Pos(p));
   }
 
-  use_once_phrases_.insert("yuggoth");
-  use_once_phrases_.insert("ia! ia!");
+  for (const string& phrase : phrases) {
+    if (phrase != "ei!" && phrase != "r!lyeh") {
+      use_once_phrases_.insert(phrase);
+    }
+  }
 }
 
 int GetPhraseScore(const string& commands, const vector<string>& phrases) {
