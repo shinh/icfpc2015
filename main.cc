@@ -68,6 +68,55 @@ enum Command {
   ROT_CC,
 };
 
+Command GetCommandFromChar(char c) {
+  switch (c) {
+    case 'p':
+    case '\'':
+    case '!':
+    case '.':
+    case '0':
+    case '3':
+      return MOVE_W;
+    case 'b':
+    case 'c':
+    case 'e':
+    case 'f':
+    case 'y':
+    case '2':
+      return MOVE_E;
+    case 'a':
+    case 'g':
+    case 'h':
+    case 'i':
+    case 'j':
+    case '4':
+      return MOVE_SW;
+    case 'l':
+    case 'm':
+    case 'n':
+    case 'o':
+    case ' ':
+    case '5':
+      return MOVE_SE;
+    case 'd':
+    case 'q':
+    case 'r':
+    case 'v':
+    case 'z':
+    case '1':
+      return ROT_C;
+    case 'k':
+    case 's':
+    case 't':
+    case 'u':
+    case 'w':
+    case 'x':
+      return ROT_CC;
+    default:
+      assert(false);
+  }
+}
+
 string MakeCommandStr(const vector<Command>& cmds) {
   string r;
   for (Command c : cmds) {
@@ -333,6 +382,25 @@ struct Decision {
     CHECK_EQ(Decision(-1, 1, 0).Apply(Pos(0, 0), Pos(0, 0)), Pos(-1, 1));
 
 #undef CHECK_EQ
+  }
+
+  Decision Move(Command cmd) {
+    switch (cmd) {
+      case MOVE_W:
+        return Decision(x - 1, y, r);
+      case MOVE_E:
+        return Decision(x + 1, y, r);
+      case MOVE_SW:
+        return Decision(pos().MoveSW(), r);
+      case MOVE_SE:
+        return Decision(pos().MoveSE(), r);
+      case ROT_C:
+        return Decision(x, y, (r + 1) % 6);
+      case ROT_CC:
+        return Decision(x, y, (r + 5) % 6);
+      default:
+        assert(false);
+    }
   }
 
   Pos Apply(Pos p, Pos pivot) const {
@@ -922,8 +990,10 @@ class Game {
     return false;
   }
 
-  string MakeNiceCommandStr(const Unit& u, Decision goal) {
-#if 1
+  bool MakeNiceCommandAfterPhrase(const string& phrase,
+                                  const Unit& u,
+                                  Decision goal,
+                                  string* ret) {
     for (int n = H - 1; n > 0; n--) {
       map<DecisionId, Decision> seen;
       string out;
@@ -932,29 +1002,17 @@ class Game {
       seen.emplace(DecisionId(u, d), d);
 
       for (int i = 0; i < n; i++) {
-        out += "r'lyeh";
-        for (int j = 0; j < 6; j++) {
-          if (j == 0) {
-            d = Decision(d.x, d.y, (d.r + 1) % 6);
-          } else if (j == 1) {
-            d = Decision(d.x - 1, d.y, d.r);
-          } else if (j == 2) {
-            d = Decision(d.pos().MoveSE(), d.r);
-          } else if (j == 3) {
-            d = Decision(d.x + 1, d.y, d.r);
-          } else if (j == 4) {
-            d = Decision(d.x + 1, d.y, d.r);
-          } else if (j == 5) {
-            d = Decision(d.pos().MoveSW(), d.r);
-          }
+        out += phrase;
+        for (size_t j = 0; j < phrase.size(); j++) {
+          d = d.Move(GetCommandFromChar(phrase[j]));
 
           if (!board_->CanPut(u, d)) {
             ok = false;
             break;
           }
-          if (i < n - 1 || j < 5) {
+          if (i < n - 1 || j < phrase.size() - 1) {
             if (!seen.emplace(DecisionId(u, d), d).second) {
-              fprintf(stderr, "%d,%d,%d\n", d.x, d.y, d.r);
+              //fprintf(stderr, "%d,%d,%d\n", d.x, d.y, d.r);
               //assert(false);
               ok = false;
               break;
@@ -967,9 +1025,20 @@ class Game {
 
       if (ok) {
         //fprintf(stderr, "go %d d=%d,%d,%d\n", n, d.x, d.y, d.r);
-        if (MakeNiceCommandStrFrom(u, d, goal, &seen, &out))
-          return out;
+        if (MakeNiceCommandStrFrom(u, d, goal, &seen, &out)) {
+          *ret = out;
+          return true;
+        }
       }
+    }
+    return false;
+  }
+
+  string MakeNiceCommandStr(const Unit& u, Decision goal) {
+#if 1
+    string out;
+    if (MakeNiceCommandAfterPhrase("r'lyeh", u, goal, &out)) {
+      return out;
     }
 
     for (int n = H - 1; n > 0; n--) {
@@ -1033,7 +1102,6 @@ class Game {
 
     map<DecisionId, Decision> seen;
     Decision d = u.origin();
-    string out;
     bool ok = MakeNiceCommandStrFrom(u, d, goal, &seen, &out);
     assert(ok);
     return out;
@@ -1075,6 +1143,7 @@ int main(int argc, char* argv[]) {
 
   if (phrases.empty()) {
     // Known phrases.
+    phrases.push_back("ia! ia!");
     phrases.push_back("ei!");
     phrases.push_back("r'lyeh");
     phrases.push_back("yuggoth");
