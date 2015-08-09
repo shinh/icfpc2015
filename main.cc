@@ -89,6 +89,9 @@ int main(int argc, char* argv[]) {
     }
   }
 
+  fprintf(stderr, "time_limit=%d mem_limit=%d num_cores=%d\n",
+          time_limit, mem_limit, num_cores);
+
   if (phrases.empty()) {
     // Known phrases.
     phrases.push_back("ia! ia!");
