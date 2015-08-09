@@ -932,6 +932,54 @@ class Game {
       seen.emplace(DecisionId(u, d), d);
 
       for (int i = 0; i < n; i++) {
+        out += "r'lyeh";
+        for (int j = 0; j < 6; j++) {
+          if (j == 0) {
+            d = Decision(d.x, d.y, (d.r + 1) % 6);
+          } else if (j == 1) {
+            d = Decision(d.x - 1, d.y, d.r);
+          } else if (j == 2) {
+            d = Decision(d.pos().MoveSE(), d.r);
+          } else if (j == 3) {
+            d = Decision(d.x + 1, d.y, d.r);
+          } else if (j == 4) {
+            d = Decision(d.x + 1, d.y, d.r);
+          } else if (j == 5) {
+            d = Decision(d.pos().MoveSW(), d.r);
+          }
+
+          if (!board_->CanPut(u, d)) {
+            ok = false;
+            break;
+          }
+          if (i < n - 1 || j < 5) {
+            if (!seen.emplace(DecisionId(u, d), d).second) {
+              fprintf(stderr, "%d,%d,%d\n", d.x, d.y, d.r);
+              //assert(false);
+              ok = false;
+              break;
+            }
+          }
+        }
+        if (!ok)
+          break;
+      }
+
+      if (ok) {
+        //fprintf(stderr, "go %d d=%d,%d,%d\n", n, d.x, d.y, d.r);
+        if (MakeNiceCommandStrFrom(u, d, goal, &seen, &out))
+          return out;
+      }
+    }
+
+    for (int n = H - 1; n > 0; n--) {
+      map<DecisionId, Decision> seen;
+      string out;
+      bool ok = true;
+      Decision d = u.origin();
+      seen.emplace(DecisionId(u, d), d);
+
+      for (int i = 0; i < n; i++) {
         out += "ei!";
         for (int j = 0; j < (i < n - 1 ? 4 : 3); j++) {
           if (j == 0) {
@@ -1028,6 +1076,7 @@ int main(int argc, char* argv[]) {
   if (phrases.empty()) {
     // Known phrases.
     phrases.push_back("ei!");
+    phrases.push_back("r'lyeh");
   }
 
   Problem problem(filename);
