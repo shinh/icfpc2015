@@ -1077,6 +1077,7 @@ int main(int argc, char* argv[]) {
     // Known phrases.
     phrases.push_back("ei!");
     phrases.push_back("r'lyeh");
+    phrases.push_back("yuggoth");
   }
 
   Problem problem(filename);
