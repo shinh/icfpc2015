@@ -366,10 +366,6 @@ struct Decision {
     //int ix = round(ngx + x + (dxb - dxa) * 0.5);
     int ix = round(ngx + x + (dxa - dxb) * 0.5);
 
-    //ngx += x;
-    //int ix = round(ngx - iy % 2 * 0.5);
-    //int ix = floor(ngx + 0.001);
-
 #ifdef VERBOSE_APPLY
     fprintf(stderr, "(%f,%f) => (%f,%f)\n", gx, gy, ngx, ngy);
 #endif
@@ -710,26 +706,6 @@ class Game {
     }
 #endif
 
-#if 0
-    {
-      const Unit& u = units_[12];
-      board_->Show(u, u.origin());
-      for (int y = 0; y < H; y++) {
-        for (int x = 0; x < W; x++) {
-          for (int r = 0; r < 6; r++) {
-            fprintf(stderr, "%d,%d,%d\n", x, y, r);
-            board_->Show(u, Decision(x, y, r));
-          }
-        }
-      }
-#if 0
-      board_->Show(u, u.origin());
-      board_->Show(u, Decision(u.base_x() + 4, 0, 0));
-      fprintf(stderr, "%d\n", board_->CanPut(u, Decision(4, 0, 0)));
-#endif
-    }
-#endif
-
     while (true) {
       turn_++;
       if (turn_ > source_length_)
@@ -826,9 +802,7 @@ class Game {
       }
     }
 
-    auto found = decisions.find(best_decision);
-    assert(found != decisions.end());
-    return *found;
+    return best_decision;
   }
 
   const string& commands() const { return commands_; }
@@ -879,13 +853,6 @@ class Game {
 #endif
 
       if (!seen->emplace(DecisionId(u, d), d).second) {
-#if 0
-        auto found = seen->find(DecisionId(u, d));
-        DecisionId sid = found->first;
-        Decision sd = found->second;
-        fprintf(stderr, "seen... %d,%d %d,%d,%d\n",
-                PF(sid.p), sd.x, sd.y, sd.r);
-#endif
         continue;
       }
 
