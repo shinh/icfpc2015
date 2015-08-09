@@ -73,13 +73,13 @@ string MakeCommandStr(const vector<Command>& cmds) {
   for (Command c : cmds) {
     switch (c) {
       case MOVE_W:
-        r += 'p';
+        r += '!';
         break;
       case MOVE_E:
-        r += 'b';
+        r += 'e';
         break;
       case MOVE_SW:
-        r += 'a';
+        r += 'i';
         break;
       case MOVE_SE:
         r += 'l';
@@ -969,7 +969,7 @@ class Game {
       seen.emplace(DecisionId(u, d), d);
 
       for (int i = 0; i < n; i++) {
-        out += "bap";
+        out += "ei!";
         for (int j = 0; j < (i < n - 1 ? 4 : 3); j++) {
           if (j == 0) {
             d = Decision(d.x + 1, d.y, d.r);
@@ -1065,7 +1065,6 @@ int main(int argc, char* argv[]) {
   if (phrases.empty()) {
     // Known phrases.
     phrases.push_back("ei!");
-    phrases.push_back("bap");
   }
 
   Problem problem(filename);
