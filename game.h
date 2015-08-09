@@ -264,13 +264,19 @@ class Board {
     return n;
   }
 
-  double Eval() {
-    int ls = Clear();
-    double score = 100 * (1 + ls) * ls / 2;
-
+  double EvalShape() {
+    double score = 0.0;
     for (int y = 0; y < H; y++) {
+      int cnt = 0;
       for (int x = 0; x < W; x++) {
         if (!At(x, y)) {
+          Pos p;
+          p = Pos(x, y).MoveNW();
+          if (!CanFill(p))
+            score -= 0.2;
+          p = Pos(x, y).MoveNE();
+          if (!CanFill(p))
+            score -= 0.2;
           continue;
         }
 
@@ -278,9 +284,21 @@ class Board {
         int dx = min(x, W - x - 1);
         score -= 0.1 * dy;
         score -= 0.001 * dx;
+        cnt++;
       }
+#if 0
+      if (cnt == 9) {
+        score += 1;
+      }
+#endif
     }
+    return score;
+  }
 
+  double Eval() {
+    int ls = Clear();
+    double score = 100 * (1 + ls) * ls / 2;
+    score += EvalShape();
     return score;
   }
 
