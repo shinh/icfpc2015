@@ -458,9 +458,6 @@ class Unit {
   int base_x_;
 };
 
-//typedef unordered_map<Decision, vector<Command>> DecisionMap;
-typedef map<Decision, vector<Command>> DecisionMap;
-
 struct DecisionId {
   DecisionId(const Unit& u, Decision d) {
     p = d.Apply(u.pivot(), u.pivot());
@@ -632,41 +629,37 @@ class Board {
     }
   }
 
-  void GetPossibleDecisionsWithComandsImpl(const Unit& u,
-                                           Decision d,
-                                           Decision pd,
-                                           vector<Command>* commands,
-                                           set<Decision>* seen,
-                                           DecisionMap* out) {
+  void GetPossibleDecisionsImpl(const Unit& u,
+                                Decision d,
+                                Decision pd,
+                                set<Decision>* seen,
+                                set<Decision>* out) {
     //fprintf(stderr, "%d %d %d %zu\n", d.x, d.y, d.r, seen->size());
     if (!CanPut(u, d)) {
       assert(d != pd);
-      out->emplace(pd, *commands);
+      out->emplace(pd);
       return;
     }
 
     if (!seen->insert(d).second)
       return;
 
-#define NEXT(nd, cmd) do {                                              \
-      commands->push_back(cmd);                                         \
-      GetPossibleDecisionsWithComandsImpl(u, nd, d, commands, seen, out); \
-      commands->pop_back();                                             \
+#define NEXT(nd) do {                                              \
+      GetPossibleDecisionsImpl(u, nd, d, seen, out);               \
     } while (0)
-    NEXT(Decision(d.x - 1, d.y, d.r), MOVE_W);
-    NEXT(Decision(d.x + 1, d.y, d.r), MOVE_E);
-    NEXT(Decision(d.pos().MoveSW(), d.r), MOVE_SW);
-    NEXT(Decision(d.pos().MoveSE(), d.r), MOVE_SE);
-    NEXT(Decision(d.x, d.y, (d.r + 1) % 6), ROT_C);
-    NEXT(Decision(d.x, d.y, (d.r + 5) % 6), ROT_CC);
+    NEXT(Decision(d.x - 1, d.y, d.r));
+    NEXT(Decision(d.x + 1, d.y, d.r));
+    NEXT(Decision(d.pos().MoveSW(), d.r));
+    NEXT(Decision(d.pos().MoveSE(), d.r));
+    NEXT(Decision(d.x, d.y, (d.r + 1) % 6));
+    NEXT(Decision(d.x, d.y, (d.r + 5) % 6));
 #undef NEXT
   }
 
-  void GetPossibleDecisionsWithComands(const Unit& u, DecisionMap* out) {
+  void GetPossibleDecisions(const Unit& u, set<Decision>* out) {
      Decision d = u.origin();
-     vector<Command> commands;
      set<Decision> seen;
-     GetPossibleDecisionsWithComandsImpl(u, d, d, &commands, &seen, out);
+     GetPossibleDecisionsImpl(u, d, d, &seen, out);
   }
 
  private:
@@ -750,8 +743,8 @@ class Game {
         break;
       }
 
-      DecisionMap decisions;
-      board_->GetPossibleDecisionsWithComands(u, &decisions);
+      set<Decision> decisions;
+      board_->GetPossibleDecisions(u, &decisions);
       assert(!decisions.empty());
 
 #if 0
@@ -766,9 +759,7 @@ class Game {
       }
 #endif
 
-      auto d = ChooseBest(u, decisions);
-
-      Decision decision = d.first;
+      Decision decision = ChooseBest(u, decisions);
 
       string cmds = MakeNiceCommandStr(u, decision);
       commands_ += cmds;
@@ -821,14 +812,11 @@ class Game {
     return score;
   }
 
-  pair<Decision, vector<Command>> ChooseBest(const Unit& u,
-                                             DecisionMap decisions) {
+  Decision ChooseBest(const Unit& u, const set<Decision>& decisions) {
     double best_score = -1e99;
     Decision best_decision;
 
-    for (const auto& p : decisions) {
-      Decision d = p.first;
-
+    for (Decision d : decisions) {
       Board nb = *board_;
       nb.Put(u, d);
       double score = nb.Eval();
