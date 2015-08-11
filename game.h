@@ -317,16 +317,12 @@ class Board {
     if (!seen->insert(d).second)
       return;
 
-#define NEXT(nd) do {                                              \
-      GetPossibleDecisionsImpl(u, nd, d, seen, out);               \
-    } while (0)
-    NEXT(Decision(d.x - 1, d.y, d.r));
-    NEXT(Decision(d.x + 1, d.y, d.r));
-    NEXT(Decision(d.pos().MoveSW(), d.r));
-    NEXT(Decision(d.pos().MoveSE(), d.r));
-    NEXT(Decision(d.x, d.y, (d.r + 1) % 6));
-    NEXT(Decision(d.x, d.y, (d.r + 5) % 6));
-#undef NEXT
+    GetPossibleDecisionsImpl(u, Decision(d.x - 1, d.y, d.r), d, seen, out);
+    GetPossibleDecisionsImpl(u, Decision(d.x + 1, d.y, d.r), d, seen, out);
+    GetPossibleDecisionsImpl(u, Decision(d.pos().MoveSW(), d.r), d, seen, out);
+    GetPossibleDecisionsImpl(u, Decision(d.pos().MoveSE(), d.r), d, seen, out);
+    GetPossibleDecisionsImpl(u, Decision(d.x, d.y, (d.r + 1) % 6), d, seen, out);
+    GetPossibleDecisionsImpl(u, Decision(d.x, d.y, (d.r + 5) % 6), d, seen, out);
   }
 
   void GetPossibleDecisions(const Unit& u, set<Decision>* out) const {
